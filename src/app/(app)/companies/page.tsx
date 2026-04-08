@@ -1,6 +1,9 @@
 import { CompanySearchTable } from "@/components/companies/company-search-table";
 import { PageHeader } from "@/components/ui/page-header";
-import { searchCompaniesByLocation } from "@/lib/services/company-service";
+import {
+  isCompanyImported,
+  searchCompaniesByLocation,
+} from "@/lib/services/company-service";
 
 export default async function CompaniesPage({
   searchParams,
@@ -9,7 +12,10 @@ export default async function CompaniesPage({
 }) {
   const params = await searchParams;
   const query = params.query ?? "";
-  const companies = searchCompaniesByLocation(query);
+  const companies = searchCompaniesByLocation(query).map((company) => ({
+    company,
+    isImported: isCompanyImported(company.id),
+  }));
 
   return (
     <main>
@@ -35,7 +41,7 @@ export default async function CompaniesPage({
           </button>
         </div>
         <p className="mt-2 text-xs text-slate-500">
-          Import is currently simulated by seeded mock data in the table.
+          Import adds a company into your mock CRM lists for dashboard and pipeline views.
         </p>
       </form>
 

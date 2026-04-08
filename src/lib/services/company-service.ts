@@ -1,8 +1,10 @@
 import { companies } from "@/lib/mock-data/companies";
 import { Company } from "@/lib/types";
 
+const importedCompanyIds = new Set<string>(companies.map((company) => company.id));
+
 export function getImportedCompanies(): Company[] {
-  return companies;
+  return companies.filter((company) => importedCompanyIds.has(company.id));
 }
 
 export function getCompanyById(companyId: string): Company | undefined {
@@ -24,6 +26,14 @@ export function searchCompaniesByLocation(query: string): Company[] {
       company.zip.toLowerCase().includes(lowerQuery)
     );
   });
+}
+
+export function isCompanyImported(companyId: string): boolean {
+  return importedCompanyIds.has(companyId);
+}
+
+export async function importMockCompany(companyId: string): Promise<void> {
+  importedCompanyIds.add(companyId);
 }
 
 export function getMockWebsiteVerificationReason(company: Company): string {
