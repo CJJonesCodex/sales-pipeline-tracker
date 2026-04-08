@@ -52,6 +52,34 @@ export async function signInWithPassword(email: string, password: string) {
   };
 }
 
+export async function signInAnonymously() {
+  const { url, publishableKey } = getSupabaseConfig();
+
+  const response = await fetch(`${url}/auth/v1/signup`, {
+    method: "POST",
+    headers: {
+      apikey: publishableKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+    cache: "no-store",
+  });
+
+  const payload = await response.json();
+
+  if (!response.ok) {
+    return {
+      session: null,
+      error: payload?.msg ?? payload?.error_description ?? "Anonymous sign in failed.",
+    };
+  }
+
+  return {
+    session: payload as SupabaseSession,
+    error: null,
+  };
+}
+
 export async function getUserWithAccessToken(accessToken: string) {
   const { url, publishableKey } = getSupabaseConfig();
 

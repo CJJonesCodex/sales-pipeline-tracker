@@ -1,6 +1,7 @@
 import {
   clearServerSession,
   getServerUser,
+  signInAnonymously,
   setServerSession,
   signInWithPassword,
 } from "@/lib/supabase/auth-helpers";
@@ -13,6 +14,16 @@ export async function createClient() {
 
         if (!session || error) {
           return { error: { message: error ?? "Sign in failed." } };
+        }
+
+        await setServerSession(session);
+        return { error: null };
+      },
+      async signInAnonymously() {
+        const { session, error } = await signInAnonymously();
+
+        if (!session || error) {
+          return { error: { message: error ?? "Anonymous sign in failed." } };
         }
 
         await setServerSession(session);
