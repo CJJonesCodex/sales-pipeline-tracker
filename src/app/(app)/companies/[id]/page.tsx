@@ -21,6 +21,7 @@ import {
   generateMockOutreachDraft,
   getOutreachByContactIds,
 } from "@/lib/services/outreach-service";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 
 const stageOptions = ["Lead", "Qualified", "Contacted", "Proposal", "Won", "Lost"];
 
@@ -29,13 +30,23 @@ export default async function CompanyDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ discovery?: string; contactsCreated?: string; message?: string }>;
+  searchParams: Promise<{
+    discovery?: string;
+    contactsCreated?: string;
+    message?: string;
+    companyUpdate?: string;
+    outreachCreate?: string;
+    outreachUpdate?: string;
+  }>;
 }) {
   const { id } = await params;
   const query = await searchParams;
   const discoveryStatus = query.discovery ?? "";
   const contactsCreated = Number(query.contactsCreated ?? "0");
-  const discoveryMessage = query.message ?? "";
+  const actionMessage = query.message ?? "";
+  const companyUpdateStatus = query.companyUpdate ?? "";
+  const outreachCreateStatus = query.outreachCreate ?? "";
+  const outreachUpdateStatus = query.outreachUpdate ?? "";
 
   try {
     const company = await getCompanyById(id);
@@ -65,7 +76,37 @@ export default async function CompanyDetailPage({
 
         {discoveryStatus === "error" ? (
           <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-            Contact discovery failed: {discoveryMessage || "Please try again."}
+            Contact discovery failed: {actionMessage || "Please try again."}
+          </div>
+        ) : null}
+        {companyUpdateStatus === "success" ? (
+          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+            Company profile updates saved.
+          </div>
+        ) : null}
+        {companyUpdateStatus === "error" ? (
+          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            Unable to save company profile updates: {actionMessage || "Please try again."}
+          </div>
+        ) : null}
+        {outreachCreateStatus === "success" ? (
+          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+            Outreach attempt created.
+          </div>
+        ) : null}
+        {outreachCreateStatus === "error" ? (
+          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            Could not create outreach attempt: {actionMessage || "Please try again."}
+          </div>
+        ) : null}
+        {outreachUpdateStatus === "success" ? (
+          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+            Outreach attempt updated.
+          </div>
+        ) : null}
+        {outreachUpdateStatus === "error" ? (
+          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            Could not update outreach attempt: {actionMessage || "Please try again."}
           </div>
         ) : null}
 
@@ -106,9 +147,11 @@ export default async function CompanyDetailPage({
                   className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
                 />
               </div>
-              <button type="submit" className="rounded bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
-                Save company updates
-              </button>
+              <FormSubmitButton
+                idleLabel="Save company updates"
+                pendingLabel="Saving..."
+                className="rounded bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+              />
             </form>
           </article>
 
@@ -116,9 +159,11 @@ export default async function CompanyDetailPage({
             <h2 className="text-lg font-semibold">Discovery Runs</h2>
             <form action={runMockContactDiscoveryAction} className="mt-3">
               <input type="hidden" name="company_id" value={company.id} />
-              <button type="submit" className="rounded bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
-                Find Contacts (mock run)
-              </button>
+              <FormSubmitButton
+                idleLabel="Find Contacts (mock run)"
+                pendingLabel="Running mock discovery..."
+                className="rounded bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+              />
             </form>
             {discoveryRuns.length ? (
               <ul className="mt-3 space-y-2 text-sm">
@@ -184,9 +229,11 @@ export default async function CompanyDetailPage({
                 <label className="mb-1 block text-sm font-medium" htmlFor="body_snapshot">Body</label>
                 <textarea id="body_snapshot" name="body_snapshot" rows={4} className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm" required />
               </div>
-              <button type="submit" className="w-fit rounded bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
-                Create outreach attempt
-              </button>
+              <FormSubmitButton
+                idleLabel="Create outreach attempt"
+                pendingLabel="Creating..."
+                className="w-fit rounded bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+              />
             </form>
           ) : (
             <p className="mt-3 text-sm text-slate-600">Add contacts before creating outreach attempts.</p>
@@ -214,9 +261,11 @@ export default async function CompanyDetailPage({
                   </div>
                   <input name="subject_line" defaultValue={attempt.subject_line} className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm" />
                   <textarea name="body_snapshot" defaultValue={attempt.body_snapshot} rows={3} className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm" />
-                  <button type="submit" className="rounded border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-50">
-                    Save outreach attempt
-                  </button>
+                  <FormSubmitButton
+                    idleLabel="Save outreach attempt"
+                    pendingLabel="Saving..."
+                    className="rounded border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  />
                 </form>
               ))}
             </div>

@@ -1,4 +1,5 @@
 import { signInAction } from "@/lib/auth/actions";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 
 export default async function LoginPage({
   searchParams,
@@ -45,12 +46,11 @@ export default async function LoginPage({
             </p>
           ) : null}
 
-          <button
-            className="block w-full rounded-md bg-brand-600 px-4 py-2 text-center font-medium text-white hover:bg-brand-700"
-            type="submit"
-          >
-            Sign in
-          </button>
+          <FormSubmitButton
+            idleLabel="Sign in"
+            pendingLabel="Signing in..."
+            className="block w-full rounded-md bg-brand-600 px-4 py-2 text-center font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+          />
         </form>
       </section>
     </main>

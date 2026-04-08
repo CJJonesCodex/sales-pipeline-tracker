@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CompanySearchTable } from "@/components/companies/company-search-table";
 import { seedSmokeTestAction } from "@/app/(app)/companies/actions";
 import { PageHeader } from "@/components/ui/page-header";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import {
   discoverCompaniesByArea,
   getImportedCompanyMapByExternalId,
@@ -109,15 +110,17 @@ export default async function CompaniesPage({
             Creates a predictable imported company, discovery run, contact, and outreach attempt so the full CRM journey is easy to test.
           </p>
           <form action={seedSmokeTestAction} className="mt-3">
-            <button className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700" type="submit">
-              Seed smoke-test path
-            </button>
+            <FormSubmitButton
+              idleLabel="Seed smoke-test path"
+              pendingLabel="Seeding..."
+              className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+            />
           </form>
         </section>
 
         {seedStatus === "success" ? (
           <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
-            Seed complete. You can now run the full smoke test flow.
+            Seed complete. You can now run the full smoke-test flow from step 5 (company detail) onward.
             {seededCompanyId ? (
               <Link href={`/companies/${seededCompanyId}`} className="ml-1 font-medium underline">
                 Open seeded company detail.
