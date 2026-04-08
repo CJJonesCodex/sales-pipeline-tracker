@@ -1,4 +1,4 @@
-# Sales Pipeline Tracker (V1 + Milestone 3)
+# Sales Pipeline Tracker (V1 + Milestone 3.5)
 
 Beginner-friendly web app shell for discovering local companies, importing them into a CRM-style workflow, reviewing contacts, and drafting outreach.
 
@@ -20,7 +20,7 @@ Beginner-friendly web app shell for discovering local companies, importing them 
   - `discovery_runs`
   - `outreach_attempts`
 
-## What is now real (Supabase-backed in Milestone 3)
+## What is now real (Supabase-backed in Milestone 3.5)
 
 The CRM views now use Supabase as the source of truth for persistence:
 
@@ -28,6 +28,8 @@ The CRM views now use Supabase as the source of truth for persistence:
   - supports area search input (zip/address + radius)
   - runs mocked company discovery for that area
   - import action writes selected discovery results into `companies`
+  - prevents duplicate imports via `user_id + external_place_id` upsert conflict handling
+  - shows loading, empty, success, and error states for discovery/import flow
   - loads imported companies from `companies`
 - `/companies/[id]`
   - reads company data from `companies`
@@ -44,9 +46,9 @@ The CRM views now use Supabase as the source of truth for persistence:
 - `/dashboard`
   - uses Supabase-backed counts for imported companies and contacts
 
-## What still uses mock data
+## What still uses mock data in Milestone 3.5
 
-Still intentionally mocked in Milestone 3:
+Still intentionally mocked in Milestone 3.5:
 
 - company search providers (business listing APIs)
 - website verification APIs and scoring inputs
@@ -55,16 +57,16 @@ Still intentionally mocked in Milestone 3:
 - outbound email sending
 
 
-## Milestone 3: Search + Discovery behavior
+## Milestone 3.5: Search + Discovery behavior
 
-### Real in Milestone 3
+### Real in Milestone 3.5
 
 - Authentication and protected app routes
 - Supabase persistence for CRM entities (`companies`, `contacts`, `discovery_runs`, `outreach_attempts`)
 - Importing discovered companies into the real `companies` table
 - Company detail, contacts, dashboard, and pipeline pages backed by Supabase
 
-### Mocked in Milestone 3
+### Mocked in Milestone 3.5
 
 - Area discovery provider for finding companies by zip/address and radius (mock dataset + mock distance matching)
 - Website verification provider and confidence scoring inputs
