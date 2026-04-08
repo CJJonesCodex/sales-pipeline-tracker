@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { PipelineStage } from "@/lib/types";
-import { importMockCompany, updateCompanyDetails } from "@/lib/services/company-service";
+import { importMockCompany, seedSmokeTestData, updateCompanyDetails } from "@/lib/services/company-service";
+import { runMockContactDiscovery } from "@/lib/services/contact-service";
 import { createOutreachAttempt, updateOutreachAttempt } from "@/lib/services/outreach-service";
 
 const validStages: PipelineStage[] = ["Lead", "Qualified", "Contacted", "Proposal", "Won", "Lost"];
@@ -34,6 +35,21 @@ export async function importCompanyAction(formData: FormData) {
   redirect(
     `/companies?query=${encodeURIComponent(query)}&radius=${encodeURIComponent(radius)}&import=success&companyId=${encodeURIComponent(companyId)}`,
   );
+}
+
+export async function seedSmokeTestAction() {
+  try {
+    const result = await seedSmokeTestData();
+    revalidatePath("/companies");
+    revalidatePath(`/companies/${result.companyId}`);
+    revalidatePath("/contacts");
+    revalidatePath("/pipeline");
+    revalidatePath("/dashboard");
+    redirect(`/companies?seed=success&companyId=${encodeURIComponent(result.companyId)}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to seed data.";
+    redirect(`/companies?seed=error&message=${encodeURIComponent(message)}`);
+  }
 }
 
 export async function updateCompanyAction(formData: FormData) {
@@ -83,6 +99,28 @@ export async function createOutreachAttemptAction(formData: FormData) {
 
   const companyId = String(formData.get("company_id") ?? "");
   revalidatePath(`/companies/${companyId}`);
+}
+
+export async function runMockContactDiscoveryAction(formData: FormData) {
+  const companyId = String(formData.get("company_id") ?? "");
+
+  if (!companyId) {
+    redirect("/companies?discovery=error&message=Missing%20company%20ID.");
+  }
+
+  try {
+    const result = await runMockContactDiscovery(companyId);
+    revalidatePath(`/companies/${companyId}`);
+    revalidatePath("/contacts");
+    revalidatePath("/dashboard");
+
+    redirect(
+      `/companies/${companyId}?discovery=success&contactsCreated=${encodeURIComponent(String(result.contactsCreated))}`,
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Discovery failed.";
+    redirect(`/companies/${companyId}?discovery=error&message=${encodeURIComponent(message)}`);
+  }
 }
 
 export async function updateOutreachAttemptAction(formData: FormData) {

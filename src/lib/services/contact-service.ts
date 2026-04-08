@@ -1,5 +1,16 @@
 import { Contact, DiscoveryRun } from "@/lib/types";
 import { supabaseRestRequest } from "@/lib/supabase/rest";
+import { getServerUser } from "@/lib/supabase/auth-helpers";
+
+async function getCurrentUserId() {
+  const user = await getServerUser();
+
+  if (!user?.id) {
+    throw new Error("You must be signed in to continue.");
+  }
+
+  return user.id;
+}
 
 export async function getAllContacts(): Promise<Contact[]> {
   return supabaseRestRequest<Contact[]>("contacts", {
@@ -37,4 +48,77 @@ export async function getDiscoveryRunsByCompanyId(companyId: string): Promise<Di
   return supabaseRestRequest<DiscoveryRun[]>("discovery_runs", {
     query: { select: "*", company_id: `eq.${companyId}`, order: "started_at.desc" },
   });
+}
+
+export async function runMockContactDiscovery(companyId: string): Promise<{ contactsCreated: number }> {
+  const userId = await getCurrentUserId();
+  const startedAt = new Date();
+  const finishedAt = new Date(startedAt.getTime() + 45_000);
+
+  const existingContacts = await getContactsByCompanyId(companyId);
+  const existingEmails = new Set(existingContacts.map((contact) => contact.email.toLowerCase()));
+
+  const mockContactCandidates = [
+    {
+      full_name: "Taylor Morgan",
+      professional_title: "Operations Manager",
+      bio_snippet: "Handles day-to-day operations and vendor coordination.",
+      email: `ops+${companyId.slice(0, 8)}@example.com`,
+      phone: "(312) 555-0201",
+      contact_type: "person" as const,
+      confidence_score: 0.89,
+      source_url: "https://www.example.com/team",
+      source_page_title: "Team",
+      verified_status: "likely" as const,
+    },
+    {
+      full_name: "Front Desk",
+      professional_title: "General Inquiries",
+      bio_snippet: "Primary contact point for appointments and sales inquiries.",
+      email: `info+${companyId.slice(0, 8)}@example.com`,
+      phone: "(312) 555-0202",
+      contact_type: "department" as const,
+      confidence_score: 0.8,
+      source_url: "https://www.example.com/contact",
+      source_page_title: "Contact",
+      verified_status: "unverified" as const,
+    },
+  ];
+
+  const contactsToInsert = mockContactCandidates
+    .filter((candidate) => !existingEmails.has(candidate.email.toLowerCase()))
+    .map((candidate) => ({
+      user_id: userId,
+      company_id: companyId,
+      ...candidate,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }));
+
+  if (contactsToInsert.length) {
+    await supabaseRestRequest<Contact[]>("contacts", {
+      method: "POST",
+      query: { select: "*" },
+      body: contactsToInsert,
+    });
+  }
+
+  await supabaseRestRequest<DiscoveryRun[]>("discovery_runs", {
+    method: "POST",
+    query: { select: "*" },
+    body: {
+      user_id: userId,
+      company_id: companyId,
+      started_at: startedAt.toISOString(),
+      finished_at: finishedAt.toISOString(),
+      status: "completed",
+      pages_scanned: 5,
+      emails_found: 2,
+      phones_found: 2,
+      contacts_found: contactsToInsert.length,
+      error_log: "",
+    },
+  });
+
+  return { contactsCreated: contactsToInsert.length };
 }
