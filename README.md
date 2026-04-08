@@ -1,4 +1,4 @@
-# Sales Pipeline Tracker (V1 + Milestone 2)
+# Sales Pipeline Tracker (V1 + Milestone 2.5)
 
 Beginner-friendly web app shell for discovering local companies, importing them into a CRM-style workflow, reviewing contacts, and drafting outreach.
 
@@ -13,38 +13,51 @@ Beginner-friendly web app shell for discovering local companies, importing them 
   - `/contacts`
   - `/pipeline`
 - Reusable component structure for layout, tables, badges, and pipeline board
-- Mock data layer for:
-  - company search results
-  - website verification status and reasoning
-  - contact discovery data
-  - discovery run history
-  - AI company summary text
-  - AI outreach draft text
 - Supabase auth wiring (login, logout, middleware route protection)
 - Supabase SQL schema + migration snapshot with RLS policies for:
-  - companies
-  - contacts
-  - discovery_runs
-  - outreach_attempts
+  - `companies`
+  - `contacts`
+  - `discovery_runs`
+  - `outreach_attempts`
+
+## What is now real (Supabase-backed)
+
+The CRM views now use Supabase as the source of truth for persistence:
+
+- `/companies`
+  - loads imported companies from `companies`
+  - import action writes selected mock search results into `companies`
+- `/companies/[id]`
+  - reads company data from `companies`
+  - saves notes and pipeline stage to `companies`
+  - reads related contacts from `contacts`
+  - reads discovery history from `discovery_runs`
+  - creates/updates outreach attempts in `outreach_attempts`
+- `/contacts`
+  - reads contacts from `contacts`
+  - updates contact fields in `contacts`
+- `/pipeline`
+  - loads pipeline columns from `companies`
+  - persists stage updates to `companies`
+- `/dashboard`
+  - uses Supabase-backed counts for imported companies and contacts
 
 ## What still uses mock data
 
-This scaffold intentionally keeps core product flows usable even without external APIs.
+Still intentionally mocked in Milestone 2.5:
 
-Still mocked:
-- business listing search APIs
-- official website verification APIs
-- live web crawling/extraction
-- AI model calls
+- company search providers (business listing APIs)
+- website verification APIs and scoring inputs
+- crawling/extraction from live websites
+- AI summaries and AI outreach draft generation
 - outbound email sending
-- persistent CRM reads/writes in the current UI views
 
 ## Tech stack
 
 - Next.js
 - TypeScript
 - Tailwind CSS
-- Supabase (auth + schema/RLS scaffolding)
+- Supabase (auth + schema/RLS + CRM persistence)
 
 ## Getting started
 
@@ -120,8 +133,8 @@ supabase/
   migrations/
 ```
 
-## Notes for next milestone
+## Notes for future milestones
 
-- Replace mock service functions with real database-backed reads/writes.
-- Add Supabase-backed company import persistence and contact persistence.
-- Add real discovery/crawler integrations behind background jobs.
+- Keep replacing mock providers (search/verification/crawl/AI) with real integrations behind reliable jobs.
+- Consider adding DB triggers for automatic `updated_at` management.
+- Add richer contact and outreach editing UX with optimistic updates.

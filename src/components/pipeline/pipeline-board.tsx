@@ -1,8 +1,27 @@
 import Link from "next/link";
-import { getPipelineColumns } from "@/lib/services/pipeline-service";
+import { updatePipelineStageAction } from "@/app/(app)/companies/actions";
+import { PipelineStage } from "@/lib/types";
 
-export function PipelineBoard() {
-  const columns = getPipelineColumns();
+type PipelineColumn = {
+  stage: PipelineStage;
+  companies: {
+    id: string;
+    company_name: string;
+    primary_category: string;
+    notes: string;
+  }[];
+};
+
+const allStages: PipelineStage[] = ["Lead", "Qualified", "Contacted", "Proposal", "Won", "Lost"];
+
+export function PipelineBoard({ columns }: { columns: PipelineColumn[] }) {
+  if (!columns.some((column) => column.companies.length)) {
+    return (
+      <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">
+        No companies in your pipeline yet. Import a company from the Companies page to get started.
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-6">
@@ -12,14 +31,29 @@ export function PipelineBoard() {
           <p className="mb-3 text-xs text-slate-500">{column.companies.length} companies</p>
           <div className="space-y-2">
             {column.companies.map((company) => (
-              <Link
-                key={company.id}
-                href={`/companies/${company.id}`}
-                className="block rounded border border-slate-200 p-2 text-sm hover:bg-slate-50"
-              >
-                <p className="font-medium">{company.company_name}</p>
-                <p className="text-xs text-slate-500">{company.primary_category}</p>
-              </Link>
+              <div key={company.id} className="rounded border border-slate-200 p-2 text-sm">
+                <Link href={`/companies/${company.id}`} className="block hover:text-brand-700">
+                  <p className="font-medium">{company.company_name}</p>
+                  <p className="text-xs text-slate-500">{company.primary_category}</p>
+                </Link>
+
+                <form action={updatePipelineStageAction} className="mt-2">
+                  <input type="hidden" name="companyId" value={company.id} />
+                  <input type="hidden" name="notes" value={company.notes} />
+                  <select
+                    name="pipeline_stage"
+                    defaultValue={column.stage}
+                    className="w-full rounded border border-slate-300 px-2 py-1 text-xs"
+                  >
+                    {allStages.map((stage) => (
+                      <option key={stage} value={stage}>{stage}</option>
+                    ))}
+                  </select>
+                  <button type="submit" className="mt-2 w-full rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">
+                    Update stage
+                  </button>
+                </form>
+              </div>
             ))}
           </div>
         </section>
