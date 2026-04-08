@@ -13,7 +13,7 @@ Beginner-friendly web app shell for discovering local companies, importing them 
   - `/contacts`
   - `/pipeline`
 - Reusable component structure for layout, tables, badges, and pipeline board
-- Supabase auth wiring (login, logout, middleware route protection)
+- Supabase auth wiring (anonymous demo login, logout, middleware route protection)
 - Supabase SQL schema + migration snapshot with RLS policies for:
   - `companies`
   - `contacts`
@@ -115,6 +115,11 @@ npm run dev
 
 Open http://localhost:3000 in your browser.
 
+### Current auth mode for testing
+
+The app currently uses **Supabase anonymous sign-in** on `/login` for demo/testing flows.
+Click **Enter Demo** to create an authenticated session before accessing protected routes.
+
 ### 5) Type-check and lint
 
 ```bash
@@ -149,7 +154,7 @@ If all pass, continue with the smoke test below.
 
 1. **Login**
    - Open `/login`.
-   - Sign in using a valid Supabase email/password.
+   - Click **Enter Demo** to sign in anonymously with Supabase.
    - Expected: redirect to `/dashboard`.
 2. **Area search**
    - Go to `/companies`.
