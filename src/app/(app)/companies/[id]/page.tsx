@@ -4,20 +4,16 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   createOutreachAttemptAction,
+  generateOutreachDraftAction,
+  runCompanyDiscoveryAction,
   updateCompanyAction,
   updateOutreachAttemptAction,
 } from "@/app/(app)/companies/actions";
+import { getCompanyById, getWebsiteVerificationReason } from "@/lib/services/company-service";
+import { getContactsByCompanyId, getDiscoveryRunsByCompanyId } from "@/lib/services/contact-service";
 import {
-  getCompanyById,
-  getMockWebsiteVerificationReason,
-} from "@/lib/services/company-service";
-import {
-  getContactsByCompanyId,
-  getDiscoveryRunsByCompanyId,
-} from "@/lib/services/contact-service";
-import {
-  generateMockCompanySummary,
-  generateMockOutreachDraft,
+  generateCompanySummary,
+  generateOutreachDraft,
   getOutreachByContactIds,
 } from "@/lib/services/outreach-service";
 
@@ -40,14 +36,14 @@ export default async function CompanyDetailPage({
     const contacts = await getContactsByCompanyId(company.id);
     const discoveryRuns = await getDiscoveryRunsByCompanyId(company.id);
     const outreachAttempts = await getOutreachByContactIds(contacts.map((contact) => contact.id));
-    const summary = generateMockCompanySummary(company);
-    const outreachDraft = generateMockOutreachDraft(company, contacts[0]);
+    const summary = await generateCompanySummary(company);
+    const outreachDraft = await generateOutreachDraft(company, contacts[0]);
 
     return (
       <main>
         <PageHeader
           title={company.company_name}
-          description="Company detail view with real CRM persistence and mock verification/search/AI features."
+          description="Company detail view with Supabase-backed CRM, public-page crawl discovery, and AI-assisted draft generation."
         />
 
         <section className="grid gap-4 lg:grid-cols-2">
@@ -59,8 +55,9 @@ export default async function CompanyDetailPage({
               <div><dt className="font-medium">Phone</dt><dd>{company.main_phone || "Not available"}</dd></div>
               <div><dt className="font-medium">Website</dt><dd>{company.website_url || "No site"}</dd></div>
               <div><dt className="font-medium">Website Status</dt><dd><StatusBadge status={company.website_status} /></dd></div>
+              <div><dt className="font-medium">Provider</dt><dd>{company.provider_name}</dd></div>
             </dl>
-            <p className="mt-3 text-xs text-slate-600">{getMockWebsiteVerificationReason(company)}</p>
+            <p className="mt-3 text-xs text-slate-600">{getWebsiteVerificationReason(company)}</p>
 
             <form action={updateCompanyAction} className="mt-4 space-y-3 rounded border border-slate-200 p-3">
               <input type="hidden" name="companyId" value={company.id} />
@@ -95,6 +92,12 @@ export default async function CompanyDetailPage({
 
           <article className="rounded-lg border border-slate-200 bg-white p-4">
             <h2 className="text-lg font-semibold">Discovery Runs</h2>
+            <form action={runCompanyDiscoveryAction} className="mt-3">
+              <input type="hidden" name="company_id" value={company.id} />
+              <button type="submit" className="rounded bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
+                Crawl Public Pages + Extract Contacts
+              </button>
+            </form>
             {discoveryRuns.length ? (
               <ul className="mt-3 space-y-2 text-sm">
                 {discoveryRuns.map((run) => (
@@ -113,11 +116,11 @@ export default async function CompanyDetailPage({
 
         <section className="mt-4 grid gap-4 lg:grid-cols-2">
           <article className="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="text-lg font-semibold">Mock AI Company Summary</h2>
+            <h2 className="text-lg font-semibold">AI Company Summary</h2>
             <p className="mt-3 whitespace-pre-line text-sm">{summary}</p>
           </article>
           <article className="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="text-lg font-semibold">Mock Outreach Draft</h2>
+            <h2 className="text-lg font-semibold">AI Outreach Draft Preview</h2>
             <p className="mt-3 whitespace-pre-line text-sm">{outreachDraft}</p>
           </article>
         </section>
@@ -137,32 +140,51 @@ export default async function CompanyDetailPage({
           <h2 className="text-lg font-semibold">Outreach Attempts</h2>
 
           {contacts.length ? (
-            <form action={createOutreachAttemptAction} className="mt-3 grid gap-3 rounded border border-slate-200 p-3 lg:grid-cols-2">
-              <input type="hidden" name="company_id" value={company.id} />
-              <div>
-                <label className="mb-1 block text-sm font-medium" htmlFor="contact_id">Contact</label>
-                <select id="contact_id" name="contact_id" className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm">
-                  {contacts.map((contact) => (
-                    <option key={contact.id} value={contact.id}>{contact.full_name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium" htmlFor="sequence_number">Sequence #</label>
-                <input id="sequence_number" name="sequence_number" defaultValue="1" className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm" />
-              </div>
-              <div className="lg:col-span-2">
-                <label className="mb-1 block text-sm font-medium" htmlFor="subject_line">Subject</label>
-                <input id="subject_line" name="subject_line" className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm" required />
-              </div>
-              <div className="lg:col-span-2">
-                <label className="mb-1 block text-sm font-medium" htmlFor="body_snapshot">Body</label>
-                <textarea id="body_snapshot" name="body_snapshot" rows={4} className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm" required />
-              </div>
-              <button type="submit" className="w-fit rounded bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
-                Create outreach attempt
-              </button>
-            </form>
+            <>
+              <form action={generateOutreachDraftAction} className="mt-3 grid gap-3 rounded border border-slate-200 p-3 lg:grid-cols-2">
+                <input type="hidden" name="company_id" value={company.id} />
+                <div>
+                  <label className="mb-1 block text-sm font-medium" htmlFor="draft_contact_id">Contact for AI draft</label>
+                  <select id="draft_contact_id" name="contact_id" className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm">
+                    {contacts.map((contact) => (
+                      <option key={contact.id} value={contact.id}>{contact.full_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <button type="submit" className="rounded border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50">
+                    Generate AI Draft in Attempts
+                  </button>
+                </div>
+              </form>
+
+              <form action={createOutreachAttemptAction} className="mt-3 grid gap-3 rounded border border-slate-200 p-3 lg:grid-cols-2">
+                <input type="hidden" name="company_id" value={company.id} />
+                <div>
+                  <label className="mb-1 block text-sm font-medium" htmlFor="contact_id">Contact</label>
+                  <select id="contact_id" name="contact_id" className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm">
+                    {contacts.map((contact) => (
+                      <option key={contact.id} value={contact.id}>{contact.full_name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium" htmlFor="sequence_number">Sequence #</label>
+                  <input id="sequence_number" name="sequence_number" defaultValue="1" className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm" />
+                </div>
+                <div className="lg:col-span-2">
+                  <label className="mb-1 block text-sm font-medium" htmlFor="subject_line">Subject</label>
+                  <input id="subject_line" name="subject_line" className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm" required />
+                </div>
+                <div className="lg:col-span-2">
+                  <label className="mb-1 block text-sm font-medium" htmlFor="body_snapshot">Body</label>
+                  <textarea id="body_snapshot" name="body_snapshot" rows={4} className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm" required />
+                </div>
+                <button type="submit" className="w-fit rounded bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
+                  Create outreach attempt
+                </button>
+              </form>
+            </>
           ) : (
             <p className="mt-3 text-sm text-slate-600">Add contacts before creating outreach attempts.</p>
           )}

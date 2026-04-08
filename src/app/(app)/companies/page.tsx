@@ -3,7 +3,8 @@ import { CompanySearchTable } from "@/components/companies/company-search-table"
 import { PageHeader } from "@/components/ui/page-header";
 import {
   discoverCompaniesByArea,
-  getImportedCompanyMapByExternalId,
+  getDuplicateIdForDiscoveryResult,
+  getImportedCompanyLookup,
 } from "@/lib/services/company-service";
 
 export default async function CompaniesPage({
@@ -25,8 +26,8 @@ export default async function CompaniesPage({
   const importMessage = params.message ?? "";
 
   try {
-    const importedCompanyMap = await getImportedCompanyMapByExternalId();
-    const importedCompanies = Array.from(importedCompanyMap.values());
+    const importedLookup = await getImportedCompanyLookup();
+    const importedCompanies = importedLookup.importedCompanies;
 
     let discoveredCompanies = [] as ReturnType<typeof discoverCompaniesByArea>;
     let discoveryError = "";
@@ -42,20 +43,16 @@ export default async function CompaniesPage({
       }
     }
 
-    const companies = discoveredCompanies.map((company) => {
-      const importedCompany = importedCompanyMap.get(company.external_place_id);
-
-      return {
-        company,
-        importedCompanyId: importedCompany?.id ?? null,
-      };
-    });
+    const companies = discoveredCompanies.map((company) => ({
+      company,
+      importedCompanyId: getDuplicateIdForDiscoveryResult(company, importedLookup),
+    }));
 
     return (
       <main>
         <PageHeader
           title="Area Search & Company Discovery"
-          description="Search by zip code or address with a radius using mock discovery data, then import selected companies into your real Supabase CRM."
+          description="Search by zip code or address + radius with provider-backed discovery, verify likely official websites, then import into Supabase CRM."
         />
 
         <form className="mb-4 rounded-lg border border-slate-200 bg-white p-4">
@@ -94,7 +91,7 @@ export default async function CompaniesPage({
           </div>
 
           <p className="mt-2 text-xs text-slate-500">
-            Discovery is mocked in Milestone 3. Import writes selected companies into Supabase.
+            Search uses OpenStreetMap providers when available and falls back to mock data for reliability.
           </p>
         </form>
 
@@ -119,13 +116,13 @@ export default async function CompaniesPage({
         ) : companies.length ? (
           <div className="mb-4">
             <p className="mb-2 text-sm text-slate-600">
-              Found {companies.length} mock result{companies.length === 1 ? "" : "s"} within {radius} miles.
+              Found {companies.length} result{companies.length === 1 ? "" : "s"} within {radius} miles.
             </p>
             <CompanySearchTable companies={companies} query={query} radius={radius} />
           </div>
         ) : (
           <div className="mb-4 rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-600">
-            No mock companies matched your area search. Try another zip, address, or radius.
+            No companies matched your area search. Try another zip, address, or radius.
           </div>
         )}
 

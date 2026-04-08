@@ -27,6 +27,8 @@ export type Database = {
           primary_category: string;
           pipeline_stage: "Lead" | "Qualified" | "Contacted" | "Proposal" | "Won" | "Lost";
           notes: string;
+          provider_name: "osm-overpass" | "mock";
+          provider_metadata: Json;
           created_at: string;
           updated_at: string;
         };
@@ -52,6 +54,7 @@ export type Database = {
           source_url: string;
           source_page_title: string;
           verified_status: "verified" | "likely" | "unverified";
+          review_status: "needs_review" | "approved" | "rejected";
           created_at: string;
           updated_at: string;
         };
@@ -71,6 +74,7 @@ export type Database = {
           finished_at: string;
           status: "queued" | "running" | "completed" | "failed";
           pages_scanned: number;
+          scanned_urls: Json;
           emails_found: number;
           phones_found: number;
           contacts_found: number;

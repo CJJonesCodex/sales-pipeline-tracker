@@ -4,7 +4,7 @@ import { Company } from "@/lib/types";
 import { ImportCompanyButton } from "@/components/companies/import-company-button";
 
 type CompanyRow = {
-  company: Company;
+  company: CompanyDiscoveryResult;
   importedCompanyId: string | null;
 };
 
@@ -32,6 +32,7 @@ export function CompanySearchTable({
             <th className="px-4 py-3">Company</th>
             <th className="px-4 py-3">Address</th>
             <th className="px-4 py-3">Website</th>
+            <th className="px-4 py-3">Status</th>
             <th className="px-4 py-3">Phone</th>
             <th className="px-4 py-3">Website Status</th>
             <th className="px-4 py-3">Action</th>
@@ -39,10 +40,11 @@ export function CompanySearchTable({
         </thead>
         <tbody>
           {companies.map(({ company, importedCompanyId }) => (
-            <tr key={company.id} className="border-t border-slate-200">
+            <tr key={company.discovery_id} className="border-t border-slate-200">
               <td className="px-4 py-3 font-medium">{company.company_name}</td>
-              <td className="px-4 py-3">{company.formatted_address}</td>
+              <td className="px-4 py-3">{company.formatted_address || "Address not available"}</td>
               <td className="px-4 py-3">{company.website_url || "No site found"}</td>
+              <td className="px-4 py-3">{company.website_status}</td>
               <td className="px-4 py-3">{company.main_phone || "No phone"}</td>
               <td className="px-4 py-3">
                 <span className={`rounded border px-2 py-1 text-xs ${getWebsiteStatusClassName(company.website_status)}`}>
@@ -60,7 +62,7 @@ export function CompanySearchTable({
                   )}
                   {importedCompanyId ? (
                     <span className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700">
-                      Imported
+                      Already in CRM
                     </span>
                   ) : (
                     <form action={importCompanyAction}>

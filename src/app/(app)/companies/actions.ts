@@ -36,6 +36,16 @@ export async function importCompanyAction(formData: FormData) {
   );
 }
 
+export async function runCompanyDiscoveryAction(formData: FormData) {
+  const companyId = String(formData.get("company_id") ?? "");
+
+  await runCompanyDiscovery(companyId);
+
+  revalidatePath(`/companies/${companyId}`);
+  revalidatePath("/contacts");
+  revalidatePath("/dashboard");
+}
+
 export async function updateCompanyAction(formData: FormData) {
   const companyId = String(formData.get("companyId") ?? "");
   const notes = String(formData.get("notes") ?? "");
@@ -82,6 +92,15 @@ export async function createOutreachAttemptAction(formData: FormData) {
   });
 
   const companyId = String(formData.get("company_id") ?? "");
+  revalidatePath(`/companies/${companyId}`);
+}
+
+export async function generateOutreachDraftAction(formData: FormData) {
+  const companyId = String(formData.get("company_id") ?? "");
+  const contactId = String(formData.get("contact_id") ?? "");
+
+  await createOrUpdateOutreachAttempt({ companyId, contactId });
+
   revalidatePath(`/companies/${companyId}`);
 }
 

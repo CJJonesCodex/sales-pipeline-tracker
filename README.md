@@ -1,20 +1,19 @@
 # Sales Pipeline Tracker (V1 + Milestone 3.5)
 
-Beginner-friendly web app shell for discovering local companies, importing them into a CRM-style workflow, reviewing contacts, and drafting outreach.
+Beginner-friendly web app for discovering local companies, importing them into a CRM-style workflow, crawling public business pages for contacts, and generating AI-assisted company/outreach content.
 
-## What is included in this scaffold
+## What is included
 
 - Next.js (App Router) + TypeScript + Tailwind CSS
-- Route structure for V1 screens:
+- Route structure:
   - `/login`
   - `/dashboard`
   - `/companies` (search/import)
-  - `/companies/[id]` (detail)
+  - `/companies/[id]` (detail + crawl + AI)
   - `/contacts`
   - `/pipeline`
-- Reusable component structure for layout, tables, badges, and pipeline board
 - Supabase auth wiring (login, logout, middleware route protection)
-- Supabase SQL schema + migration snapshot with RLS policies for:
+- Supabase SQL schema with RLS policies for:
   - `companies`
   - `contacts`
   - `discovery_runs`
@@ -96,14 +95,15 @@ Create `.env.local`:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_or_publishable_key
+OPENAI_API_KEY=optional_for_real_ai_generation
 ```
 
 ### 3) Apply database schema in Supabase
 
-Run either SQL file in the Supabase SQL editor:
+Run either:
 
-- `supabase/schema.sql`
-- `supabase/migrations/20260408190000_milestone2_schema.sql`
+- `supabase/schema.sql` for a fresh setup, or
+- base migration `supabase/migrations/20260408190000_milestone2_schema.sql` then `supabase/migrations/20260408210000_milestone456_schema_updates.sql`
 
 ### 4) Run development server
 
@@ -113,18 +113,12 @@ npm run dev
 
 Open http://localhost:3000 in your browser.
 
-### 5) Type-check and lint
+### 5) Type-check, lint, and build
 
 ```bash
 npm run typecheck
 npm run lint
-```
-
-### 6) Build for production
-
-```bash
 npm run build
-npm run start
 ```
 
 ## Project structure
@@ -154,9 +148,3 @@ supabase/
   schema.sql
   migrations/
 ```
-
-## Notes for future milestones
-
-- Keep replacing mock providers (search/verification/crawl/AI) with real integrations behind reliable jobs.
-- Consider adding DB triggers for automatic `updated_at` management.
-- Add richer contact and outreach editing UX with optimistic updates.
