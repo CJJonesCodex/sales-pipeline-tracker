@@ -10,8 +10,8 @@ export const pipelineStages: PipelineStage[] = [
   "Lost",
 ];
 
-export async function getPipelineColumns() {
-  const companies = await getImportedCompanies();
+export function getPipelineColumns() {
+  const companies = getImportedCompanies();
 
   return pipelineStages.map((stage) => ({
     stage,

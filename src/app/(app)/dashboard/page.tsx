@@ -2,9 +2,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { getImportedCompanies } from "@/lib/services/company-service";
 import { getAllContacts } from "@/lib/services/contact-service";
 
-export default async function DashboardPage() {
-  const companies = await getImportedCompanies();
-  const contacts = await getAllContacts();
+export default function DashboardPage() {
+  const companies = getImportedCompanies();
+  const contacts = getAllContacts();
 
   return (
     <main>

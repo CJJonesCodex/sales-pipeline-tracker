@@ -1,17 +1,14 @@
 import { PipelineBoard } from "@/components/pipeline/pipeline-board";
 import { PageHeader } from "@/components/ui/page-header";
-import { getPipelineColumns } from "@/lib/services/pipeline-service";
 
-export default async function PipelinePage() {
-  const columns = await getPipelineColumns();
-
+export default function PipelinePage() {
   return (
     <main>
       <PageHeader
         title="Pipeline Board"
-        description="Kanban-style view of imported companies stored in Supabase."
+        description="Kanban-style view of imported companies and their current stage."
       />
-      <PipelineBoard columns={columns} />
+      <PipelineBoard />
     </main>
   );
 }

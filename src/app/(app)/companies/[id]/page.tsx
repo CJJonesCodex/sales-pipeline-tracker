@@ -21,14 +21,14 @@ export default async function CompanyDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const company = await getCompanyById(id);
+  const company = getCompanyById(id);
 
   if (!company) {
     notFound();
   }
 
-  const contacts = await getContactsByCompanyId(company.id);
-  const discoveryRuns = await getDiscoveryRunsByCompanyId(company.id);
+  const contacts = getContactsByCompanyId(company.id);
+  const discoveryRuns = getDiscoveryRunsByCompanyId(company.id);
   const summary = generateMockCompanySummary(company);
   const outreachDraft = generateMockOutreachDraft(company, contacts[0]);
 

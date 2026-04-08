@@ -1,19 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { outreachAttempts } from "@/lib/mock-data/outreach-attempts";
 import { Company, Contact, OutreachAttempt } from "@/lib/types";
 
-export async function getOutreachByContactId(contactId: string): Promise<OutreachAttempt[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("outreach_attempts")
-    .select("*")
-    .eq("contact_id", contactId)
-    .order("sequence_number", { ascending: true });
-
-  if (error) {
-    return [];
-  }
-
-  return data;
+export function getOutreachByContactId(contactId: string): OutreachAttempt[] {
+  return outreachAttempts.filter((attempt) => attempt.contact_id === contactId);
 }
 
 export function generateMockCompanySummary(company: Company): string {

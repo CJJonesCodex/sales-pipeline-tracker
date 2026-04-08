@@ -1,12 +1,9 @@
 import Link from "next/link";
-import { Company, PipelineStage } from "@/lib/types";
+import { getPipelineColumns } from "@/lib/services/pipeline-service";
 
-type PipelineColumn = {
-  stage: PipelineStage;
-  companies: Company[];
-};
+export function PipelineBoard() {
+  const columns = getPipelineColumns();
 
-export function PipelineBoard({ columns }: { columns: PipelineColumn[] }) {
   return (
     <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-6">
       {columns.map((column) => (

@@ -1,52 +1,46 @@
-# Sales Pipeline Tracker (Milestone 2)
+# Sales Pipeline Tracker (V1 Scaffold)
 
 Beginner-friendly web app shell for discovering local companies, importing them into a CRM-style workflow, reviewing contacts, and drafting outreach.
 
-## What Milestone 2 adds
+## What is included in this scaffold
 
-- Supabase Auth integration (email/password)
-- Protected routes for app pages
-- Supabase database persistence for:
-  - Companies
-  - Contacts
-  - DiscoveryRuns
-  - OutreachAttempts
-- SQL schema + Row Level Security (RLS) policies in `supabase/schema.sql`
+- Next.js (App Router) + TypeScript + Tailwind CSS
+- Route structure for V1 screens:
+  - `/login`
+  - `/dashboard`
+  - `/companies` (search/import)
+  - `/companies/[id]` (detail)
+  - `/contacts`
+  - `/pipeline`
+- Reusable component structure for layout, tables, badges, and pipeline board
+- Mock data layer for:
+  - company search results
+  - website verification status and reasoning
+  - contact discovery data
+  - discovery run history
+  - AI company summary text
+  - AI outreach draft text
 
-## Still mocked in this milestone
+## Mock-only behavior in V1
 
-These remain intentionally mocked so we can keep product progress fast:
+This scaffold intentionally uses local mock data and does **not** integrate with external APIs yet.
 
-- business listing search source (search results are local mock data)
-- official website verification logic source
-- public-page crawling and extraction jobs
-- AI company summaries
-- AI outreach draft generation
-- email sending
+Still mocked:
+- authentication
+- business listing search APIs
+- official website verification APIs
+- live web crawling/extraction
+- AI model calls
+- outbound email sending
+- persistent database writes
 
-## Required environment variables
+## Tech stack
 
-Create a `.env.local` file using `.env.example`:
+- Next.js
+- TypeScript
+- Tailwind CSS
 
-```bash
-cp .env.example .env.local
-```
-
-Set:
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
-```
-
-## Supabase setup
-
-1. Create a Supabase project.
-2. In Supabase, open the SQL Editor.
-3. Run the SQL from `supabase/schema.sql`.
-4. In Supabase Auth, create a test user (email/password) for login.
-
-## Local setup
+## Getting started
 
 ### 1) Install dependencies
 
@@ -60,29 +54,21 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000 in your browser.
 
-### 3) Lint and typecheck
+### 3) Type-check and lint
 
 ```bash
-npm run lint
 npm run typecheck
+npm run lint
 ```
 
-## Routes
+### 4) Build for production
 
-- `/login`
-- `/dashboard`
-- `/companies`
-- `/companies/[id]`
-- `/contacts`
-- `/pipeline`
-
-## Data flow notes
-
-- `/companies` search uses local mock dataset.
-- Clicking **Import** writes that selected mock company into Supabase.
-- Dashboard/pipeline/company detail/contacts read from Supabase.
+```bash
+npm run build
+npm run start
+```
 
 ## Project structure
 
@@ -96,13 +82,19 @@ src/
       contacts/
       pipeline/
   components/
+    layout/
+    ui/
+    companies/
+    contacts/
+    pipeline/
   lib/
-    auth/
-    supabase/
-    services/
     mock-data/
+    services/
     types.ts
-    database.types.ts
-supabase/
-  schema.sql
 ```
+
+## Notes for next milestone
+
+- Replace mock service functions with real integrations one by one.
+- Add server actions or API routes for import/discovery workflows.
+- Add a real database/auth provider after core UX is validated.
