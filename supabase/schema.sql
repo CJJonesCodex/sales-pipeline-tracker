@@ -1,4 +1,4 @@
--- Sales Pipeline Tracker - Milestone 2 schema
+-- Sales Pipeline Tracker - schema with Milestones 2 through 6
 -- Run this in Supabase SQL editor.
 
 create extension if not exists "pgcrypto";
@@ -20,6 +20,8 @@ create table if not exists public.companies (
   primary_category text not null default '',
   pipeline_stage text not null check (pipeline_stage in ('Lead', 'Qualified', 'Contacted', 'Proposal', 'Won', 'Lost')),
   notes text not null default '',
+  provider_name text not null default 'mock' check (provider_name in ('osm-overpass', 'mock')),
+  provider_metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique(user_id, external_place_id)
@@ -39,6 +41,7 @@ create table if not exists public.contacts (
   source_url text not null default '',
   source_page_title text not null default '',
   verified_status text not null check (verified_status in ('verified', 'likely', 'unverified')),
+  review_status text not null default 'needs_review' check (review_status in ('needs_review', 'approved', 'rejected')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -51,6 +54,7 @@ create table if not exists public.discovery_runs (
   finished_at timestamptz not null,
   status text not null check (status in ('queued', 'running', 'completed', 'failed')),
   pages_scanned integer not null default 0,
+  scanned_urls jsonb not null default '[]'::jsonb,
   emails_found integer not null default 0,
   phones_found integer not null default 0,
   contacts_found integer not null default 0,
@@ -77,6 +81,11 @@ alter table public.companies enable row level security;
 alter table public.contacts enable row level security;
 alter table public.discovery_runs enable row level security;
 alter table public.outreach_attempts enable row level security;
+
+drop policy if exists "companies_owner_all" on public.companies;
+drop policy if exists "contacts_owner_all" on public.contacts;
+drop policy if exists "discovery_runs_owner_all" on public.discovery_runs;
+drop policy if exists "outreach_attempts_owner_all" on public.outreach_attempts;
 
 create policy "companies_owner_all" on public.companies
   for all

@@ -1,19 +1,38 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { PipelineStage } from "@/lib/types";
-import { importMockCompany, updateCompanyDetails } from "@/lib/services/company-service";
-import { createOutreachAttempt, updateOutreachAttempt } from "@/lib/services/outreach-service";
+import { CompanyDiscoveryResult, PipelineStage } from "@/lib/types";
+import {
+  importDiscoveredCompany,
+  updateCompanyDetails,
+} from "@/lib/services/company-service";
+import {
+  createOrUpdateOutreachAttempt,
+  createOutreachAttempt,
+  updateOutreachAttempt,
+} from "@/lib/services/outreach-service";
+import { runCompanyDiscovery } from "@/lib/services/contact-service";
 
 const validStages: PipelineStage[] = ["Lead", "Qualified", "Contacted", "Proposal", "Won", "Lost"];
 
 export async function importCompanyAction(formData: FormData) {
-  const companyId = String(formData.get("companyId") ?? "");
+  const companyPayload = String(formData.get("companyPayload") ?? "{}");
+  const company = JSON.parse(companyPayload) as CompanyDiscoveryResult;
 
-  await importMockCompany(companyId);
+  await importDiscoveredCompany(company);
   revalidatePath("/companies");
   revalidatePath("/dashboard");
   revalidatePath("/pipeline");
+}
+
+export async function runCompanyDiscoveryAction(formData: FormData) {
+  const companyId = String(formData.get("company_id") ?? "");
+
+  await runCompanyDiscovery(companyId);
+
+  revalidatePath(`/companies/${companyId}`);
+  revalidatePath("/contacts");
+  revalidatePath("/dashboard");
 }
 
 export async function updateCompanyAction(formData: FormData) {
@@ -62,6 +81,15 @@ export async function createOutreachAttemptAction(formData: FormData) {
   });
 
   const companyId = String(formData.get("company_id") ?? "");
+  revalidatePath(`/companies/${companyId}`);
+}
+
+export async function generateOutreachDraftAction(formData: FormData) {
+  const companyId = String(formData.get("company_id") ?? "");
+  const contactId = String(formData.get("contact_id") ?? "");
+
+  await createOrUpdateOutreachAttempt({ companyId, contactId });
+
   revalidatePath(`/companies/${companyId}`);
 }
 

@@ -1,83 +1,59 @@
-# Sales Pipeline Tracker (V1 + Milestone 3)
+# Sales Pipeline Tracker (Milestones 4, 5, and 6)
 
-Beginner-friendly web app shell for discovering local companies, importing them into a CRM-style workflow, reviewing contacts, and drafting outreach.
+Beginner-friendly web app for discovering local companies, importing them into a CRM-style workflow, crawling public business pages for contacts, and generating AI-assisted company/outreach content.
 
-## What is included in this scaffold
+## What is included
 
 - Next.js (App Router) + TypeScript + Tailwind CSS
-- Route structure for V1 screens:
+- Route structure:
   - `/login`
   - `/dashboard`
   - `/companies` (search/import)
-  - `/companies/[id]` (detail)
+  - `/companies/[id]` (detail + crawl + AI)
   - `/contacts`
   - `/pipeline`
-- Reusable component structure for layout, tables, badges, and pipeline board
 - Supabase auth wiring (login, logout, middleware route protection)
-- Supabase SQL schema + migration snapshot with RLS policies for:
+- Supabase SQL schema with RLS policies for:
   - `companies`
   - `contacts`
   - `discovery_runs`
   - `outreach_attempts`
 
-## What is now real (Supabase-backed in Milestone 3)
+## What is now real
 
-The CRM views now use Supabase as the source of truth for persistence:
+- Provider-backed area search by zip/address + radius:
+  - geocoding via OpenStreetMap Nominatim
+  - business listings via Overpass
+  - normalized output fields (name, formatted address, phone, website, provider id)
+- Website verification status scoring:
+  - `verified`
+  - `likely`
+  - `mismatch`
+  - `missing`
+- Stronger duplicate prevention on import:
+  - external provider id match
+  - website domain match
+  - normalized company name + address match
+- Import to Supabase `companies` with provider metadata and website verification status
+- Public-page crawl flow from company detail page (`/`, `/contact`, `/about`, `/team`, `/staff`, `/leadership`, `/company`)
+- Deterministic extraction and storage of:
+  - emails
+  - phone numbers
+  - names
+  - professional titles
+  - short bio snippets
+  - source URLs/page titles
+- Discovery run persistence in Supabase (`discovery_runs`), including scanned URLs
+- Contact confidence + review state persistence (`review_status`)
+- AI-assisted company summary and outreach draft generation:
+  - real OpenAI Responses API usage when `OPENAI_API_KEY` is configured
+  - readable deterministic fallback when key is not configured
 
-- `/companies`
-  - supports area search input (zip/address + radius)
-  - runs mocked company discovery for that area
-  - import action writes selected discovery results into `companies`
-  - loads imported companies from `companies`
-- `/companies/[id]`
-  - reads company data from `companies`
-  - saves notes and pipeline stage to `companies`
-  - reads related contacts from `contacts`
-  - reads discovery history from `discovery_runs`
-  - creates/updates outreach attempts in `outreach_attempts`
-- `/contacts`
-  - reads contacts from `contacts`
-  - updates contact fields in `contacts`
-- `/pipeline`
-  - loads pipeline columns from `companies`
-  - persists stage updates to `companies`
-- `/dashboard`
-  - uses Supabase-backed counts for imported companies and contacts
+## What is still mocked
 
-## What still uses mock data
-
-Still intentionally mocked in Milestone 3:
-
-- company search providers (business listing APIs)
-- website verification APIs and scoring inputs
-- crawling/extraction from live websites
-- AI summaries and AI outreach draft generation
-- outbound email sending
-
-
-## Milestone 3: Search + Discovery behavior
-
-### Real in Milestone 3
-
-- Authentication and protected app routes
-- Supabase persistence for CRM entities (`companies`, `contacts`, `discovery_runs`, `outreach_attempts`)
-- Importing discovered companies into the real `companies` table
-- Company detail, contacts, dashboard, and pipeline pages backed by Supabase
-
-### Mocked in Milestone 3
-
-- Area discovery provider for finding companies by zip/address and radius (mock dataset + mock distance matching)
-- Website verification provider and confidence scoring inputs
-- Live website crawling and deterministic extraction from real company websites
-- AI summary and AI outreach generation internals
-- Autonomous email sending
-
-## Tech stack
-
-- Next.js
-- TypeScript
-- Tailwind CSS
-- Supabase (auth + schema/RLS + CRM persistence)
+- Search provider fallback still uses local mock data when OpenStreetMap provider requests fail or return no usable rows.
+- Outbound email sending remains intentionally mocked (draft/review only).
+- Contact extraction still uses deterministic parsing heuristics (not a full crawler stack with JS rendering).
 
 ## Getting started
 
@@ -94,14 +70,15 @@ Create `.env.local`:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_or_publishable_key
+OPENAI_API_KEY=optional_for_real_ai_generation
 ```
 
 ### 3) Apply database schema in Supabase
 
-Run either SQL file in the Supabase SQL editor:
+Run either:
 
-- `supabase/schema.sql`
-- `supabase/migrations/20260408190000_milestone2_schema.sql`
+- `supabase/schema.sql` for a fresh setup, or
+- base migration `supabase/migrations/20260408190000_milestone2_schema.sql` then `supabase/migrations/20260408210000_milestone456_schema_updates.sql`
 
 ### 4) Run development server
 
@@ -111,18 +88,12 @@ npm run dev
 
 Open http://localhost:3000 in your browser.
 
-### 5) Type-check and lint
+### 5) Type-check, lint, and build
 
 ```bash
 npm run typecheck
 npm run lint
-```
-
-### 6) Build for production
-
-```bash
 npm run build
-npm run start
 ```
 
 ## Project structure
@@ -152,9 +123,3 @@ supabase/
   schema.sql
   migrations/
 ```
-
-## Notes for future milestones
-
-- Keep replacing mock providers (search/verification/crawl/AI) with real integrations behind reliable jobs.
-- Consider adding DB triggers for automatic `updated_at` management.
-- Add richer contact and outreach editing UX with optimistic updates.

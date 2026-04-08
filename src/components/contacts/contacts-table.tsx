@@ -14,6 +14,7 @@ export function ContactsTable({ contacts }: { contacts: Contact[] }) {
             <th className="px-4 py-3">Phone</th>
             <th className="px-4 py-3">Confidence</th>
             <th className="px-4 py-3">Verified</th>
+            <th className="px-4 py-3">Review</th>
             <th className="px-4 py-3">Action</th>
           </tr>
         </thead>
@@ -27,6 +28,7 @@ export function ContactsTable({ contacts }: { contacts: Contact[] }) {
               <td className="px-4 py-3">{contact.phone}</td>
               <td className="px-4 py-3">{Math.round(contact.confidence_score * 100)}%</td>
               <td className="px-4 py-3">{contact.verified_status}</td>
+              <td className="px-4 py-3">{contact.review_status}</td>
               <td className="px-4 py-3">
                 <form action={updateContactAction} className="space-y-2">
                   <input type="hidden" name="contactId" value={contact.id} />
