@@ -1,0 +1,36 @@
+import { Contact } from "@/lib/types";
+
+export const contacts: Contact[] = [
+  {
+    id: "ct1",
+    company_id: "c1",
+    full_name: "Dr. Lena Ortiz",
+    professional_title: "Clinical Director",
+    bio_snippet: "Leads patient care and team operations.",
+    email: "lortiz@blueriverdental.example",
+    phone: "(312) 555-0102",
+    contact_type: "person",
+    confidence_score: 0.94,
+    source_url: "https://www.blueriverdental.example/team",
+    source_page_title: "Our Team",
+    verified_status: "verified",
+    created_at: "2026-01-03T10:10:00Z",
+    updated_at: "2026-01-03T10:10:00Z",
+  },
+  {
+    id: "ct2",
+    company_id: "c2",
+    full_name: "Service Desk",
+    professional_title: "Customer Support",
+    bio_snippet: "Primary line for service requests and quote scheduling.",
+    email: "support@northwindhvac.example",
+    phone: "(773) 555-0145",
+    contact_type: "department",
+    confidence_score: 0.83,
+    source_url: "https://www.northwindhvac.example/contact",
+    source_page_title: "Contact Us",
+    verified_status: "likely",
+    created_at: "2026-01-05T10:10:00Z",
+    updated_at: "2026-01-05T10:10:00Z",
+  },
+];
