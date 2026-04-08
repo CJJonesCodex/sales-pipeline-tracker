@@ -2,22 +2,32 @@ import Link from "next/link";
 import { CompanySearchTable } from "@/components/companies/company-search-table";
 import { PageHeader } from "@/components/ui/page-header";
 import {
+  discoverCompaniesByArea,
   getImportedCompanyMapByExternalId,
-  searchCompaniesByLocation,
 } from "@/lib/services/company-service";
 
 export default async function CompaniesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ query?: string }>;
+  searchParams: Promise<{ query?: string; radius?: string }>;
 }) {
   const params = await searchParams;
   const query = params.query ?? "";
+  const radius = Number(params.radius ?? "10");
 
   try {
     const importedCompanyMap = await getImportedCompanyMapByExternalId();
     const importedCompanies = Array.from(importedCompanyMap.values());
-    const companies = searchCompaniesByLocation(query).map((company) => {
+
+    const hasSearchInput = query.trim().length > 0;
+    const discoveredCompanies = hasSearchInput
+      ? discoverCompaniesByArea({
+          locationQuery: query,
+          radiusMiles: radius,
+        })
+      : [];
+
+    const companies = discoveredCompanies.map((company) => {
       const importedCompany = importedCompanyMap.get(company.external_place_id);
 
       return {
@@ -29,36 +39,64 @@ export default async function CompaniesPage({
     return (
       <main>
         <PageHeader
-          title="Company Search & Import"
-          description="Search by zip code or location using mock business listing data, then import into your real CRM database."
+          title="Area Search & Company Discovery"
+          description="Search by zip code or address with a radius using mock discovery data, then import selected companies into your real Supabase CRM."
         />
 
         <form className="mb-4 rounded-lg border border-slate-200 bg-white p-4">
-          <label className="block text-sm font-medium" htmlFor="query">
-            Zip code, city, or address
-          </label>
-          <div className="mt-2 flex gap-2">
-            <input
-              defaultValue={query}
-              id="query"
-              name="query"
-              placeholder="e.g. 60601 or Chicago"
-              className="w-full rounded-md border border-slate-300 px-3 py-2"
-            />
+          <div className="grid gap-4 md:grid-cols-[2fr_1fr_auto] md:items-end">
+            <div>
+              <label className="block text-sm font-medium" htmlFor="query">
+                Zip code or address
+              </label>
+              <input
+                defaultValue={query}
+                id="query"
+                name="query"
+                placeholder="e.g. 60601 or 101 Main St, Chicago"
+                className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium" htmlFor="radius">
+                Search radius (miles)
+              </label>
+              <input
+                defaultValue={String(Number.isFinite(radius) ? radius : 10)}
+                id="radius"
+                min={1}
+                name="radius"
+                step={1}
+                type="number"
+                className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2"
+              />
+            </div>
+
             <button className="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700" type="submit">
-              Search (Mock)
+              Discover Companies
             </button>
           </div>
+
           <p className="mt-2 text-xs text-slate-500">
-            Search results are still mocked. Import writes selected companies into Supabase.
+            Discovery is mocked in Milestone 3. Import writes selected companies into Supabase.
           </p>
         </form>
 
-        {companies.length ? (
-          <CompanySearchTable companies={companies} />
+        {!hasSearchInput ? (
+          <div className="mb-4 rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-600">
+            Enter a zip code or address and radius to discover companies.
+          </div>
+        ) : companies.length ? (
+          <div className="mb-4">
+            <p className="mb-2 text-sm text-slate-600">
+              Found {companies.length} mock result{companies.length === 1 ? "" : "s"} within {radius} miles.
+            </p>
+            <CompanySearchTable companies={companies} />
+          </div>
         ) : (
-          <div className="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-600">
-            No mock companies matched your search.
+          <div className="mb-4 rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-600">
+            No mock companies matched your area search. Try another zip, address, or radius.
           </div>
         )}
 
@@ -84,7 +122,7 @@ export default async function CompaniesPage({
   } catch (error) {
     return (
       <main>
-        <PageHeader title="Company Search & Import" description="Unable to load import state from Supabase." />
+        <PageHeader title="Area Search & Company Discovery" description="Unable to load import state from Supabase." />
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
           {(error as Error).message}
         </div>

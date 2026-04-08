@@ -32,20 +32,88 @@ export async function getCompanyById(companyId: string): Promise<Company | null>
   return rows[0] ?? null;
 }
 
-export function searchCompaniesByLocation(query: string): Company[] {
-  if (!query.trim()) {
-    return mockCompanies;
+const mockAreaCenters: Record<string, { latitude: number; longitude: number }> = {
+  "60601": { latitude: 41.8864, longitude: -87.6186 },
+  chicago: { latitude: 41.8781, longitude: -87.6298 },
+  "60201": { latitude: 42.0451, longitude: -87.6877 },
+  evanston: { latitude: 42.0451, longitude: -87.6877 },
+};
+
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function getDistanceMiles(
+  start: { latitude: number; longitude: number },
+  end: { latitude: number; longitude: number },
+) {
+  const earthRadiusMiles = 3958.8;
+  const dLat = toRadians(end.latitude - start.latitude);
+  const dLng = toRadians(end.longitude - start.longitude);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(start.latitude)) *
+      Math.cos(toRadians(end.latitude)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusMiles * c;
+}
+
+function getMockAreaCenter(query: string) {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return null;
   }
 
-  const lowerQuery = query.toLowerCase();
+  for (const [key, center] of Object.entries(mockAreaCenters)) {
+    if (normalizedQuery.includes(key)) {
+      return center;
+    }
+  }
+
+  const directMatch = mockCompanies.find((company) => {
+    const searchableText = `${company.formatted_address} ${company.city} ${company.state} ${company.zip}`.toLowerCase();
+    return searchableText.includes(normalizedQuery);
+  });
+
+  if (directMatch) {
+    return {
+      latitude: directMatch.latitude,
+      longitude: directMatch.longitude,
+    };
+  }
+
+  return null;
+}
+
+export function discoverCompaniesByArea(input: { locationQuery: string; radiusMiles: number }) {
+  const locationQuery = input.locationQuery.trim();
+
+  if (!locationQuery) {
+    throw new Error("Enter a zip code or address to run discovery.");
+  }
+
+  if (!Number.isFinite(input.radiusMiles) || input.radiusMiles <= 0) {
+    throw new Error("Search radius must be greater than 0 miles.");
+  }
+
+  const center = getMockAreaCenter(locationQuery);
+
+  if (!center) {
+    return [];
+  }
 
   return mockCompanies.filter((company) => {
-    return (
-      company.company_name.toLowerCase().includes(lowerQuery) ||
-      company.city.toLowerCase().includes(lowerQuery) ||
-      company.state.toLowerCase().includes(lowerQuery) ||
-      company.zip.toLowerCase().includes(lowerQuery)
-    );
+    const distance = getDistanceMiles(center, {
+      latitude: company.latitude,
+      longitude: company.longitude,
+    });
+
+    return distance <= input.radiusMiles;
   });
 }
 
