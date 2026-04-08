@@ -1,28 +1,39 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { CompanyDiscoveryResult, PipelineStage } from "@/lib/types";
-import {
-  importDiscoveredCompany,
-  updateCompanyDetails,
-} from "@/lib/services/company-service";
-import {
-  createOrUpdateOutreachAttempt,
-  createOutreachAttempt,
-  updateOutreachAttempt,
-} from "@/lib/services/outreach-service";
-import { runCompanyDiscovery } from "@/lib/services/contact-service";
+import { redirect } from "next/navigation";
+import { PipelineStage } from "@/lib/types";
+import { importMockCompany, updateCompanyDetails } from "@/lib/services/company-service";
+import { createOutreachAttempt, updateOutreachAttempt } from "@/lib/services/outreach-service";
 
 const validStages: PipelineStage[] = ["Lead", "Qualified", "Contacted", "Proposal", "Won", "Lost"];
 
 export async function importCompanyAction(formData: FormData) {
-  const companyPayload = String(formData.get("companyPayload") ?? "{}");
-  const company = JSON.parse(companyPayload) as CompanyDiscoveryResult;
+  const companyId = String(formData.get("companyId") ?? "");
+  const query = String(formData.get("query") ?? "");
+  const radius = String(formData.get("radius") ?? "10");
 
-  await importDiscoveredCompany(company);
+  if (!companyId) {
+    redirect(
+      `/companies?query=${encodeURIComponent(query)}&radius=${encodeURIComponent(radius)}&import=error&message=${encodeURIComponent("Missing company ID.")}`,
+    );
+  }
+
+  try {
+    await importMockCompany(companyId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Import failed.";
+    redirect(
+      `/companies?query=${encodeURIComponent(query)}&radius=${encodeURIComponent(radius)}&import=error&message=${encodeURIComponent(message)}`,
+    );
+  }
+
   revalidatePath("/companies");
   revalidatePath("/dashboard");
   revalidatePath("/pipeline");
+  redirect(
+    `/companies?query=${encodeURIComponent(query)}&radius=${encodeURIComponent(radius)}&import=success&companyId=${encodeURIComponent(companyId)}`,
+  );
 }
 
 export async function runCompanyDiscoveryAction(formData: FormData) {
