@@ -5,7 +5,7 @@ import { Company } from "@/lib/types";
 
 type CompanyRow = {
   company: Company;
-  isImported: boolean;
+  importedCompanyId: string | null;
 };
 
 export function CompanySearchTable({ companies }: { companies: CompanyRow[] }) {
@@ -22,7 +22,7 @@ export function CompanySearchTable({ companies }: { companies: CompanyRow[] }) {
           </tr>
         </thead>
         <tbody>
-          {companies.map(({ company, isImported }) => (
+          {companies.map(({ company, importedCompanyId }) => (
             <tr key={company.id} className="border-t border-slate-200">
               <td className="px-4 py-3 font-medium">{company.company_name}</td>
               <td className="px-4 py-3">{company.city}, {company.state}</td>
@@ -30,10 +30,14 @@ export function CompanySearchTable({ companies }: { companies: CompanyRow[] }) {
               <td className="px-4 py-3"><StatusBadge status={company.website_status} /></td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <Link href={`/companies/${company.id}`} className="font-medium text-brand-600">
-                    View detail
-                  </Link>
-                  {isImported ? (
+                  {importedCompanyId ? (
+                    <Link href={`/companies/${importedCompanyId}`} className="font-medium text-brand-600">
+                      View detail
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-slate-500">Import to view detail</span>
+                  )}
+                  {importedCompanyId ? (
                     <span className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700">
                       Imported
                     </span>
@@ -44,7 +48,7 @@ export function CompanySearchTable({ companies }: { companies: CompanyRow[] }) {
                         className="rounded border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50"
                         type="submit"
                       >
-                        Import (Mock)
+                        Import
                       </button>
                     </form>
                   )}
