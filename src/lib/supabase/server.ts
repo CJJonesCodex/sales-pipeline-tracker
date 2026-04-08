@@ -1,22 +1,30 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import { Database } from "@/lib/database.types";
+import {
+  clearServerSession,
+  getServerUser,
+  setServerSession,
+  signInWithPassword,
+} from "@/lib/supabase/auth-helpers";
 
 export async function createClient() {
-  const cookieStore = await cookies();
+  return {
+    auth: {
+      async signInWithPassword({ email, password }: { email: string; password: string }) {
+        const { session, error } = await signInWithPassword(email, password);
 
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
-        },
+        if (!session || error) {
+          return { error: { message: error ?? "Sign in failed." } };
+        }
+
+        await setServerSession(session);
+        return { error: null };
       },
-    }
-  );
+      async signOut() {
+        await clearServerSession();
+      },
+      async getUser() {
+        const user = await getServerUser();
+        return { data: { user } };
+      },
+    },
+  };
 }
