@@ -1,4 +1,4 @@
-# Sales Pipeline Tracker (V1 + Milestone 2.5)
+# Sales Pipeline Tracker (V1 + Milestone 3)
 
 Beginner-friendly web app shell for discovering local companies, importing them into a CRM-style workflow, reviewing contacts, and drafting outreach.
 
@@ -20,13 +20,15 @@ Beginner-friendly web app shell for discovering local companies, importing them 
   - `discovery_runs`
   - `outreach_attempts`
 
-## What is now real (Supabase-backed)
+## What is now real (Supabase-backed in Milestone 3)
 
 The CRM views now use Supabase as the source of truth for persistence:
 
 - `/companies`
+  - supports area search input (zip/address + radius)
+  - runs mocked company discovery for that area
+  - import action writes selected discovery results into `companies`
   - loads imported companies from `companies`
-  - import action writes selected mock search results into `companies`
 - `/companies/[id]`
   - reads company data from `companies`
   - saves notes and pipeline stage to `companies`
@@ -44,13 +46,31 @@ The CRM views now use Supabase as the source of truth for persistence:
 
 ## What still uses mock data
 
-Still intentionally mocked in Milestone 2.5:
+Still intentionally mocked in Milestone 3:
 
 - company search providers (business listing APIs)
 - website verification APIs and scoring inputs
 - crawling/extraction from live websites
 - AI summaries and AI outreach draft generation
 - outbound email sending
+
+
+## Milestone 3: Search + Discovery behavior
+
+### Real in Milestone 3
+
+- Authentication and protected app routes
+- Supabase persistence for CRM entities (`companies`, `contacts`, `discovery_runs`, `outreach_attempts`)
+- Importing discovered companies into the real `companies` table
+- Company detail, contacts, dashboard, and pipeline pages backed by Supabase
+
+### Mocked in Milestone 3
+
+- Area discovery provider for finding companies by zip/address and radius (mock dataset + mock distance matching)
+- Website verification provider and confidence scoring inputs
+- Live website crawling and deterministic extraction from real company websites
+- AI summary and AI outreach generation internals
+- Autonomous email sending
 
 ## Tech stack
 

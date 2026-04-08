@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { importCompanyAction } from "@/app/(app)/companies/actions";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { Company } from "@/lib/types";
 
 type CompanyRow = {
@@ -15,9 +14,9 @@ export function CompanySearchTable({ companies }: { companies: CompanyRow[] }) {
         <thead className="bg-slate-100 text-left">
           <tr>
             <th className="px-4 py-3">Company</th>
-            <th className="px-4 py-3">Location</th>
+            <th className="px-4 py-3">Address</th>
             <th className="px-4 py-3">Website</th>
-            <th className="px-4 py-3">Status</th>
+            <th className="px-4 py-3">Phone</th>
             <th className="px-4 py-3">Action</th>
           </tr>
         </thead>
@@ -25,9 +24,9 @@ export function CompanySearchTable({ companies }: { companies: CompanyRow[] }) {
           {companies.map(({ company, importedCompanyId }) => (
             <tr key={company.id} className="border-t border-slate-200">
               <td className="px-4 py-3 font-medium">{company.company_name}</td>
-              <td className="px-4 py-3">{company.city}, {company.state}</td>
+              <td className="px-4 py-3">{company.formatted_address}</td>
               <td className="px-4 py-3">{company.website_url || "No site found"}</td>
-              <td className="px-4 py-3"><StatusBadge status={company.website_status} /></td>
+              <td className="px-4 py-3">{company.main_phone || "No phone"}</td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
                   {importedCompanyId ? (
