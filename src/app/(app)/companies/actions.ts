@@ -58,17 +58,23 @@ export async function updateCompanyAction(formData: FormData) {
   const pipelineStage = String(formData.get("pipeline_stage") ?? "Lead") as PipelineStage;
 
   if (!validStages.includes(pipelineStage)) {
-    throw new Error("Invalid pipeline stage.");
+    redirect(`/companies/${companyId}?companyUpdate=error&message=${encodeURIComponent("Invalid pipeline stage.")}`);
   }
 
-  await updateCompanyDetails(companyId, {
-    notes,
-    pipeline_stage: pipelineStage,
-  });
+  try {
+    await updateCompanyDetails(companyId, {
+      notes,
+      pipeline_stage: pipelineStage,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to save company updates.";
+    redirect(`/companies/${companyId}?companyUpdate=error&message=${encodeURIComponent(message)}`);
+  }
 
   revalidatePath(`/companies/${companyId}`);
   revalidatePath("/pipeline");
   revalidatePath("/dashboard");
+  redirect(`/companies/${companyId}?companyUpdate=success`);
 }
 
 export async function updatePipelineStageAction(formData: FormData) {
@@ -76,29 +82,41 @@ export async function updatePipelineStageAction(formData: FormData) {
   const pipelineStage = String(formData.get("pipeline_stage") ?? "Lead") as PipelineStage;
 
   if (!validStages.includes(pipelineStage)) {
-    throw new Error("Invalid pipeline stage.");
+    redirect(`/pipeline?stageUpdate=error&message=${encodeURIComponent("Invalid pipeline stage.")}`);
   }
 
-  await updateCompanyDetails(companyId, {
-    notes: String(formData.get("notes") ?? ""),
-    pipeline_stage: pipelineStage,
-  });
+  try {
+    await updateCompanyDetails(companyId, {
+      notes: String(formData.get("notes") ?? ""),
+      pipeline_stage: pipelineStage,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to update pipeline stage.";
+    redirect(`/pipeline?stageUpdate=error&message=${encodeURIComponent(message)}`);
+  }
 
   revalidatePath("/pipeline");
   revalidatePath(`/companies/${companyId}`);
   revalidatePath("/dashboard");
+  redirect("/pipeline?stageUpdate=success");
 }
 
 export async function createOutreachAttemptAction(formData: FormData) {
-  await createOutreachAttempt({
-    contact_id: String(formData.get("contact_id") ?? ""),
-    sequence_number: Number(formData.get("sequence_number") ?? "1"),
-    subject_line: String(formData.get("subject_line") ?? ""),
-    body_snapshot: String(formData.get("body_snapshot") ?? ""),
-  });
-
   const companyId = String(formData.get("company_id") ?? "");
+  try {
+    await createOutreachAttempt({
+      contact_id: String(formData.get("contact_id") ?? ""),
+      sequence_number: Number(formData.get("sequence_number") ?? "1"),
+      subject_line: String(formData.get("subject_line") ?? ""),
+      body_snapshot: String(formData.get("body_snapshot") ?? ""),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to create outreach attempt.";
+    redirect(`/companies/${companyId}?outreachCreate=error&message=${encodeURIComponent(message)}`);
+  }
+
   revalidatePath(`/companies/${companyId}`);
+  redirect(`/companies/${companyId}?outreachCreate=success`);
 }
 
 export async function runMockContactDiscoveryAction(formData: FormData) {
@@ -124,13 +142,19 @@ export async function runMockContactDiscoveryAction(formData: FormData) {
 }
 
 export async function updateOutreachAttemptAction(formData: FormData) {
-  await updateOutreachAttempt(String(formData.get("attempt_id") ?? ""), {
-    draft_status: String(formData.get("draft_status") ?? "drafted") as "drafted" | "ready" | "sent",
-    subject_line: String(formData.get("subject_line") ?? ""),
-    body_snapshot: String(formData.get("body_snapshot") ?? ""),
-    status: String(formData.get("status") ?? "not_sent") as "not_sent" | "sent" | "replied" | "bounced",
-  });
-
   const companyId = String(formData.get("company_id") ?? "");
+  try {
+    await updateOutreachAttempt(String(formData.get("attempt_id") ?? ""), {
+      draft_status: String(formData.get("draft_status") ?? "drafted") as "drafted" | "ready" | "sent",
+      subject_line: String(formData.get("subject_line") ?? ""),
+      body_snapshot: String(formData.get("body_snapshot") ?? ""),
+      status: String(formData.get("status") ?? "not_sent") as "not_sent" | "sent" | "replied" | "bounced",
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to update outreach attempt.";
+    redirect(`/companies/${companyId}?outreachUpdate=error&message=${encodeURIComponent(message)}`);
+  }
+
   revalidatePath(`/companies/${companyId}`);
+  redirect(`/companies/${companyId}?outreachUpdate=success`);
 }

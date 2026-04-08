@@ -129,47 +129,71 @@ npm run build
 npm run start
 ```
 
-## Smoke-test readiness (exact checklist)
+## Test Readiness / Smoke Test phase
 
-Use this exact sequence after signing in to verify the end-to-end app journey:
+Use this phase whenever M4–M6 code is merged or rebased to verify that auth, CRM persistence, discovery, website status display, contact extraction, and AI surfaces are logically connected.
+
+### Preflight checks
+
+Run these checks first:
+
+```bash
+npm run typecheck
+npm run lint
+npm run build
+```
+
+If all pass, continue with the smoke test below.
+
+### Smoke-test checklist (exact sequence)
 
 1. **Login**
-   - Go to `/login` and sign in with a valid Supabase email/password.
+   - Open `/login`.
+   - Sign in using a valid Supabase email/password.
    - Expected: redirect to `/dashboard`.
 2. **Area search**
    - Go to `/companies`.
-   - Enter `60601` and radius `10`, then click **Discover Companies**.
-   - Expected: discovery results table appears.
+   - Enter `60601` and radius `10`.
+   - Click **Discover Companies**.
+   - Expected: results table appears, or explicit empty-state message appears.
 3. **Company discovery results**
-   - Confirm at least one mock result appears with website status badge.
-   - Expected: each row shows company, address, website, phone, and action.
+   - Confirm at least one row appears with website status badge (`verified` / `likely` / `mismatch` / `missing`).
+   - Expected: each row includes company, address, website, phone, and an import action.
 4. **Import into CRM**
-   - Click **Import** for one discovery result.
-   - Expected: success banner appears and company shows under **Imported Companies (Supabase)**.
+   - Click **Import** on a result row.
+   - Expected: import success banner appears and the company appears in **Imported Companies (Supabase)**.
 5. **Company detail page**
-   - Open the imported company via **View detail** or imported list link.
-   - Expected: company profile, discovery runs panel, AI summary, AI outreach draft, and contacts section render.
+   - Open the imported company from **View detail** (or imported list link).
+   - Expected: profile panel, discovery runs panel, contacts section, AI summary, and AI outreach draft sections all render.
 6. **Contact discovery run**
-   - On company detail page, click **Find Contacts (mock run)**.
-   - Expected: success banner reports discovery completion and how many contacts were added.
+   - Click **Find Contacts (mock run)** on company detail.
+   - Expected: success banner appears with created contact count, and discovery runs list includes the new run.
 7. **Contacts visible in UI**
-   - Verify contacts appear in the company detail contacts section.
-   - Go to `/contacts` and confirm those contacts appear there too.
+   - Confirm contacts are listed in the company detail contacts section.
+   - Go to `/contacts`.
+   - Expected: discovered contacts are present in the global contacts table.
 8. **Pipeline update**
-   - Go to `/pipeline`, change the company stage, and save.
-   - Expected: stage updates in pipeline and reflects on company detail/dashboard.
+   - Go to `/pipeline`.
+   - Change the company stage and click **Update stage**.
+   - Expected: success banner appears and stage is updated on pipeline cards and company detail.
 9. **AI summary visible**
-   - Return to company detail page and confirm **Mock AI Company Summary** is visible.
+   - Return to `/companies/[id]`.
+   - Expected: **Mock AI Company Summary** section is visible with non-empty text.
 10. **Outreach draft visible**
-    - On the same page, confirm **Mock Outreach Draft** is visible.
+    - On `/companies/[id]`, verify **Mock Outreach Draft** section is visible with non-empty text.
 
-### Optional fast-path seed for manual QA
+### Optional seeded fast-path for manual QA
 
-If you want a predictable baseline before running the checklist:
+For a predictable baseline, use seeded data before running steps 5–10:
 
-- Go to `/companies` and click **Seed smoke-test path**.
-- Expected: success message with a link to an already-seeded company detail page.
-- The seed path creates (idempotently): one imported company, one contact, one discovery run, and one outreach attempt.
+- Go to `/companies`.
+- Click **Seed smoke-test path**.
+- Expected: success banner with a link to an existing seeded company detail page.
+- Seed is idempotent and creates/reuses:
+  - one imported company
+  - one contact
+  - one discovery run
+  - one outreach attempt
 
 ## Project structure
 

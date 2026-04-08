@@ -1,5 +1,6 @@
 import { updateContactAction } from "@/app/(app)/contacts/actions";
 import { Contact } from "@/lib/types";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 
 export function ContactsTable({ contacts }: { contacts: Contact[] }) {
   return (
@@ -38,9 +39,11 @@ export function ContactsTable({ contacts }: { contacts: Contact[] }) {
                     <option value="likely">likely</option>
                     <option value="unverified">unverified</option>
                   </select>
-                  <button className="block rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50" type="submit">
-                    Save
-                  </button>
+                  <FormSubmitButton
+                    idleLabel="Save"
+                    pendingLabel="Saving..."
+                    className="block rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  />
                 </form>
               </td>
             </tr>

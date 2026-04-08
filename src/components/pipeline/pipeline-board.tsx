@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { updatePipelineStageAction } from "@/app/(app)/companies/actions";
 import { PipelineStage } from "@/lib/types";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 
 type PipelineColumn = {
   stage: PipelineStage;
@@ -49,9 +50,13 @@ export function PipelineBoard({ columns }: { columns: PipelineColumn[] }) {
                       <option key={stage} value={stage}>{stage}</option>
                     ))}
                   </select>
-                  <button type="submit" className="mt-2 w-full rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50">
-                    Update stage
-                  </button>
+                  <div className="mt-2">
+                    <FormSubmitButton
+                      idleLabel="Update stage"
+                      pendingLabel="Updating..."
+                      className="w-full rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                  </div>
                 </form>
               </div>
             ))}
