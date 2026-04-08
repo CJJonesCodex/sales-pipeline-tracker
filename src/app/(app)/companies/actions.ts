@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { PipelineStage } from "@/lib/types";
 import { importMockCompany, updateCompanyDetails } from "@/lib/services/company-service";
 import { createOutreachAttempt, updateOutreachAttempt } from "@/lib/services/outreach-service";
@@ -9,11 +10,30 @@ const validStages: PipelineStage[] = ["Lead", "Qualified", "Contacted", "Proposa
 
 export async function importCompanyAction(formData: FormData) {
   const companyId = String(formData.get("companyId") ?? "");
+  const query = String(formData.get("query") ?? "");
+  const radius = String(formData.get("radius") ?? "10");
 
-  await importMockCompany(companyId);
+  if (!companyId) {
+    redirect(
+      `/companies?query=${encodeURIComponent(query)}&radius=${encodeURIComponent(radius)}&import=error&message=${encodeURIComponent("Missing company ID.")}`,
+    );
+  }
+
+  try {
+    await importMockCompany(companyId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Import failed.";
+    redirect(
+      `/companies?query=${encodeURIComponent(query)}&radius=${encodeURIComponent(radius)}&import=error&message=${encodeURIComponent(message)}`,
+    );
+  }
+
   revalidatePath("/companies");
   revalidatePath("/dashboard");
   revalidatePath("/pipeline");
+  redirect(
+    `/companies?query=${encodeURIComponent(query)}&radius=${encodeURIComponent(radius)}&import=success&companyId=${encodeURIComponent(companyId)}`,
+  );
 }
 
 export async function updateCompanyAction(formData: FormData) {

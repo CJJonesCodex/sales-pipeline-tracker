@@ -9,23 +9,38 @@ import {
 export default async function CompaniesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ query?: string; radius?: string }>;
+  searchParams: Promise<{
+    query?: string;
+    radius?: string;
+    import?: string;
+    message?: string;
+  }>;
 }) {
   const params = await searchParams;
   const query = params.query ?? "";
-  const radius = Number(params.radius ?? "10");
+  const parsedRadius = Number(params.radius ?? "10");
+  const radius = Number.isFinite(parsedRadius) && parsedRadius > 0 ? parsedRadius : 10;
+  const hasSearchInput = query.trim().length > 0;
+  const importStatus = params.import ?? "";
+  const importMessage = params.message ?? "";
 
   try {
     const importedCompanyMap = await getImportedCompanyMapByExternalId();
     const importedCompanies = Array.from(importedCompanyMap.values());
 
-    const hasSearchInput = query.trim().length > 0;
-    const discoveredCompanies = hasSearchInput
-      ? discoverCompaniesByArea({
+    let discoveredCompanies = [] as ReturnType<typeof discoverCompaniesByArea>;
+    let discoveryError = "";
+
+    if (hasSearchInput) {
+      try {
+        discoveredCompanies = discoverCompaniesByArea({
           locationQuery: query,
           radiusMiles: radius,
-        })
-      : [];
+        });
+      } catch (error) {
+        discoveryError = error instanceof Error ? error.message : "Unable to run discovery.";
+      }
+    }
 
     const companies = discoveredCompanies.map((company) => {
       const importedCompany = importedCompanyMap.get(company.external_place_id);
@@ -83,16 +98,30 @@ export default async function CompaniesPage({
           </p>
         </form>
 
+        {importStatus === "success" ? (
+          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+            Company imported successfully. It is now stored in Supabase.
+          </div>
+        ) : null}
+
+        {importStatus === "error" ? (
+          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            Import failed: {importMessage || "Please try again."}
+          </div>
+        ) : null}
+
         {!hasSearchInput ? (
           <div className="mb-4 rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-600">
             Enter a zip code or address and radius to discover companies.
           </div>
+        ) : discoveryError ? (
+          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">{discoveryError}</div>
         ) : companies.length ? (
           <div className="mb-4">
             <p className="mb-2 text-sm text-slate-600">
               Found {companies.length} mock result{companies.length === 1 ? "" : "s"} within {radius} miles.
             </p>
-            <CompanySearchTable companies={companies} />
+            <CompanySearchTable companies={companies} query={query} radius={radius} />
           </div>
         ) : (
           <div className="mb-4 rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-600">
