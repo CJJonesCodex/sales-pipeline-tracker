@@ -1,6 +1,9 @@
 import { getServerUser } from "@/lib/supabase/auth-helpers";
 import { supabaseRestRequest } from "@/lib/supabase/rest";
 import { companies as mockCompanies } from "@/lib/mock-data/companies";
+import { contacts as mockContacts } from "@/lib/mock-data/contacts";
+import { discoveryRuns as mockDiscoveryRuns } from "@/lib/mock-data/discovery-runs";
+import { outreachAttempts as mockOutreachAttempts } from "@/lib/mock-data/outreach-attempts";
 import { Company, PipelineStage } from "@/lib/types";
 
 async function getCurrentUserId() {
@@ -191,4 +194,143 @@ export function getMockWebsiteVerificationReason(company: Company): string {
   }
 
   return "No clear official website found from mock search results.";
+}
+
+export async function seedSmokeTestData() {
+  const userId = await getCurrentUserId();
+  const selectedCompany = mockCompanies[0];
+
+  const companyRows = await supabaseRestRequest<Company[]>("companies", {
+    method: "POST",
+    query: {
+      select: "*",
+      on_conflict: "user_id,external_place_id",
+    },
+    prefer: "resolution=merge-duplicates,return=representation",
+    body: {
+      user_id: userId,
+      external_place_id: selectedCompany.external_place_id,
+      company_name: selectedCompany.company_name,
+      website_url: selectedCompany.website_url,
+      website_status: selectedCompany.website_status,
+      main_phone: selectedCompany.main_phone,
+      formatted_address: selectedCompany.formatted_address,
+      city: selectedCompany.city,
+      state: selectedCompany.state,
+      zip: selectedCompany.zip,
+      latitude: selectedCompany.latitude,
+      longitude: selectedCompany.longitude,
+      primary_category: selectedCompany.primary_category,
+      pipeline_stage: selectedCompany.pipeline_stage,
+      notes: selectedCompany.notes,
+    },
+  });
+
+  const company = companyRows[0];
+  const seededContactTemplate = mockContacts.find((contact) => contact.company_id === selectedCompany.id);
+  const nowIso = new Date().toISOString();
+
+  if (seededContactTemplate) {
+    const existingContacts = await supabaseRestRequest<{ id: string; email: string }[]>("contacts", {
+      query: {
+        select: "id,email",
+        company_id: `eq.${company.id}`,
+      },
+    });
+
+    if (!existingContacts.some((contact) => contact.email.toLowerCase() === seededContactTemplate.email.toLowerCase())) {
+      await supabaseRestRequest("contacts", {
+        method: "POST",
+        query: { select: "id" },
+        body: {
+          user_id: userId,
+          company_id: company.id,
+          full_name: seededContactTemplate.full_name,
+          professional_title: seededContactTemplate.professional_title,
+          bio_snippet: seededContactTemplate.bio_snippet,
+          email: seededContactTemplate.email,
+          phone: seededContactTemplate.phone,
+          contact_type: seededContactTemplate.contact_type,
+          confidence_score: seededContactTemplate.confidence_score,
+          source_url: seededContactTemplate.source_url,
+          source_page_title: seededContactTemplate.source_page_title,
+          verified_status: seededContactTemplate.verified_status,
+          created_at: nowIso,
+          updated_at: nowIso,
+        },
+      });
+    }
+  }
+
+  const existingRuns = await supabaseRestRequest<{ id: string }[]>("discovery_runs", {
+    query: {
+      select: "id",
+      company_id: `eq.${company.id}`,
+      order: "started_at.desc",
+      limit: "1",
+    },
+  });
+
+  if (!existingRuns.length) {
+    const runTemplate = mockDiscoveryRuns[0];
+    await supabaseRestRequest("discovery_runs", {
+      method: "POST",
+      query: { select: "id" },
+      body: {
+        user_id: userId,
+        company_id: company.id,
+        started_at: runTemplate.started_at,
+        finished_at: runTemplate.finished_at,
+        status: runTemplate.status,
+        pages_scanned: runTemplate.pages_scanned,
+        emails_found: runTemplate.emails_found,
+        phones_found: runTemplate.phones_found,
+        contacts_found: runTemplate.contacts_found,
+        error_log: runTemplate.error_log,
+      },
+    });
+  }
+
+  const contactRows = await supabaseRestRequest<{ id: string }[]>("contacts", {
+    query: {
+      select: "id",
+      company_id: `eq.${company.id}`,
+      order: "created_at.asc",
+      limit: "1",
+    },
+  });
+
+  if (contactRows[0]) {
+    const existingAttempts = await supabaseRestRequest<{ id: string }[]>("outreach_attempts", {
+      query: {
+        select: "id",
+        contact_id: `eq.${contactRows[0].id}`,
+        limit: "1",
+      },
+    });
+
+    if (!existingAttempts.length) {
+      const attemptTemplate = mockOutreachAttempts[0];
+      await supabaseRestRequest("outreach_attempts", {
+        method: "POST",
+        query: { select: "id" },
+        body: {
+          user_id: userId,
+          contact_id: contactRows[0].id,
+          sequence_number: attemptTemplate.sequence_number,
+          channel: attemptTemplate.channel,
+          draft_status: attemptTemplate.draft_status,
+          subject_line: attemptTemplate.subject_line,
+          body_snapshot: attemptTemplate.body_snapshot,
+          drafted_at: attemptTemplate.drafted_at,
+          sent_at: attemptTemplate.sent_at,
+          reply_received_at: attemptTemplate.reply_received_at,
+          bounce_at: attemptTemplate.bounce_at,
+          status: attemptTemplate.status,
+        },
+      });
+    }
+  }
+
+  return { companyId: company.id };
 }

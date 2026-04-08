@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CompanySearchTable } from "@/components/companies/company-search-table";
+import { seedSmokeTestAction } from "@/app/(app)/companies/actions";
 import { PageHeader } from "@/components/ui/page-header";
 import {
   discoverCompaniesByArea,
@@ -13,6 +14,8 @@ export default async function CompaniesPage({
     query?: string;
     radius?: string;
     import?: string;
+    seed?: string;
+    companyId?: string;
     message?: string;
   }>;
 }) {
@@ -22,6 +25,8 @@ export default async function CompaniesPage({
   const radius = Number.isFinite(parsedRadius) && parsedRadius > 0 ? parsedRadius : 10;
   const hasSearchInput = query.trim().length > 0;
   const importStatus = params.import ?? "";
+  const seedStatus = params.seed ?? "";
+  const seededCompanyId = params.companyId ?? "";
   const importMessage = params.message ?? "";
 
   try {
@@ -97,6 +102,35 @@ export default async function CompaniesPage({
             Discovery is mocked in Milestone 3. Import writes selected companies into Supabase.
           </p>
         </form>
+
+        <section className="mb-4 rounded-lg border border-brand-100 bg-brand-50 p-4">
+          <h2 className="text-base font-semibold text-brand-800">Seed smoke-test data</h2>
+          <p className="mt-1 text-sm text-brand-700">
+            Creates a predictable imported company, discovery run, contact, and outreach attempt so the full CRM journey is easy to test.
+          </p>
+          <form action={seedSmokeTestAction} className="mt-3">
+            <button className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700" type="submit">
+              Seed smoke-test path
+            </button>
+          </form>
+        </section>
+
+        {seedStatus === "success" ? (
+          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+            Seed complete. You can now run the full smoke test flow.
+            {seededCompanyId ? (
+              <Link href={`/companies/${seededCompanyId}`} className="ml-1 font-medium underline">
+                Open seeded company detail.
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+
+        {seedStatus === "error" ? (
+          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            Seed failed: {importMessage || "Please try again."}
+          </div>
+        ) : null}
 
         {importStatus === "success" ? (
           <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">

@@ -28,6 +28,7 @@ The CRM views now use Supabase as the source of truth for persistence:
   - supports area search input (zip/address + radius)
   - runs mocked company discovery for that area
   - import action writes selected discovery results into `companies`
+  - includes a one-click "Seed smoke-test path" action to create a predictable manual QA path
   - prevents duplicate imports via `user_id + external_place_id` upsert conflict handling
   - shows loading, empty, success, and error states for discovery/import flow
   - loads imported companies from `companies`
@@ -36,6 +37,7 @@ The CRM views now use Supabase as the source of truth for persistence:
   - saves notes and pipeline stage to `companies`
   - reads related contacts from `contacts`
   - reads discovery history from `discovery_runs`
+  - supports "Find Contacts (mock run)" to create a mock discovery run + contacts for smoke testing
   - creates/updates outreach attempts in `outreach_attempts`
 - `/contacts`
   - reads contacts from `contacts`
@@ -126,6 +128,48 @@ npm run lint
 npm run build
 npm run start
 ```
+
+## Smoke-test readiness (exact checklist)
+
+Use this exact sequence after signing in to verify the end-to-end app journey:
+
+1. **Login**
+   - Go to `/login` and sign in with a valid Supabase email/password.
+   - Expected: redirect to `/dashboard`.
+2. **Area search**
+   - Go to `/companies`.
+   - Enter `60601` and radius `10`, then click **Discover Companies**.
+   - Expected: discovery results table appears.
+3. **Company discovery results**
+   - Confirm at least one mock result appears with website status badge.
+   - Expected: each row shows company, address, website, phone, and action.
+4. **Import into CRM**
+   - Click **Import** for one discovery result.
+   - Expected: success banner appears and company shows under **Imported Companies (Supabase)**.
+5. **Company detail page**
+   - Open the imported company via **View detail** or imported list link.
+   - Expected: company profile, discovery runs panel, AI summary, AI outreach draft, and contacts section render.
+6. **Contact discovery run**
+   - On company detail page, click **Find Contacts (mock run)**.
+   - Expected: success banner reports discovery completion and how many contacts were added.
+7. **Contacts visible in UI**
+   - Verify contacts appear in the company detail contacts section.
+   - Go to `/contacts` and confirm those contacts appear there too.
+8. **Pipeline update**
+   - Go to `/pipeline`, change the company stage, and save.
+   - Expected: stage updates in pipeline and reflects on company detail/dashboard.
+9. **AI summary visible**
+   - Return to company detail page and confirm **Mock AI Company Summary** is visible.
+10. **Outreach draft visible**
+    - On the same page, confirm **Mock Outreach Draft** is visible.
+
+### Optional fast-path seed for manual QA
+
+If you want a predictable baseline before running the checklist:
+
+- Go to `/companies` and click **Seed smoke-test path**.
+- Expected: success message with a link to an already-seeded company detail page.
+- The seed path creates (idempotently): one imported company, one contact, one discovery run, and one outreach attempt.
 
 ## Project structure
 

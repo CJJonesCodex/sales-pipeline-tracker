@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   createOutreachAttemptAction,
+  runMockContactDiscoveryAction,
   updateCompanyAction,
   updateOutreachAttemptAction,
 } from "@/app/(app)/companies/actions";
@@ -25,10 +26,16 @@ const stageOptions = ["Lead", "Qualified", "Contacted", "Proposal", "Won", "Lost
 
 export default async function CompanyDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ discovery?: string; contactsCreated?: string; message?: string }>;
 }) {
   const { id } = await params;
+  const query = await searchParams;
+  const discoveryStatus = query.discovery ?? "";
+  const contactsCreated = Number(query.contactsCreated ?? "0");
+  const discoveryMessage = query.message ?? "";
 
   try {
     const company = await getCompanyById(id);
@@ -49,6 +56,18 @@ export default async function CompanyDetailPage({
           title={company.company_name}
           description="Company detail view with real CRM persistence and mock verification/search/AI features."
         />
+
+        {discoveryStatus === "success" ? (
+          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+            Contact discovery run completed. {contactsCreated} new contact{contactsCreated === 1 ? "" : "s"} added.
+          </div>
+        ) : null}
+
+        {discoveryStatus === "error" ? (
+          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            Contact discovery failed: {discoveryMessage || "Please try again."}
+          </div>
+        ) : null}
 
         <section className="grid gap-4 lg:grid-cols-2">
           <article className="rounded-lg border border-slate-200 bg-white p-4">
@@ -95,6 +114,12 @@ export default async function CompanyDetailPage({
 
           <article className="rounded-lg border border-slate-200 bg-white p-4">
             <h2 className="text-lg font-semibold">Discovery Runs</h2>
+            <form action={runMockContactDiscoveryAction} className="mt-3">
+              <input type="hidden" name="company_id" value={company.id} />
+              <button type="submit" className="rounded bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700">
+                Find Contacts (mock run)
+              </button>
+            </form>
             {discoveryRuns.length ? (
               <ul className="mt-3 space-y-2 text-sm">
                 {discoveryRuns.map((run) => (
