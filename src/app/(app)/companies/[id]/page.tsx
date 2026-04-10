@@ -5,13 +5,15 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import {
   autoSelectBestContactAction,
   createOutreachAttemptAction,
+  generatePrimaryDraftAction,
   runMockContactDiscoveryAction,
   updateCompanyAction,
   updateOutreachAttemptAction,
+  updateOutreachLifecycleAction,
 } from "@/app/(app)/companies/actions";
 import { getMockWebsiteVerificationReason, getCompanyById } from "@/lib/services/company-service";
 import { getContactsByCompanyId, getDiscoveryRunsByCompanyId } from "@/lib/services/contact-service";
-import { generateMockCompanySummary, generateMockOutreachDraft, getOutreachByContactIds } from "@/lib/services/outreach-service";
+import { generateMockCompanySummary, getOutreachActivitiesByCompanyId, getOutreachByContactIds } from "@/lib/services/outreach-service";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { getBestContact, pipelineStages } from "@/lib/pipeline";
 
@@ -60,14 +62,14 @@ export default async function CompanyDetailPage({
     const bestContact = contacts.find((contact) => contact.is_primary) ?? getBestContact(contacts);
     const discoveryRuns = await getDiscoveryRunsByCompanyId(company.id);
     const outreachAttempts = await getOutreachByContactIds(contacts.map((contact) => contact.id));
+    const outreachActivities = await getOutreachActivitiesByCompanyId(company.id);
     const summary = generateMockCompanySummary(company);
-    const outreachDraft = generateMockOutreachDraft(company, bestContact ?? contacts[0]);
 
     return (
       <main>
         <PageHeader
           title={company.company_name}
-          description="Company detail view with stage automation, follow-up scheduling, and best-contact qualification."
+          description="Company detail view with outreach lifecycle, follow-up scheduling, and activity timeline."
         />
 
         {discoveryStatus === "success" ? (
@@ -95,7 +97,10 @@ export default async function CompanyDetailPage({
           <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">Outreach attempt created.</div>
         ) : null}
         {outreachUpdateStatus === "success" ? (
-          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">Outreach attempt updated.</div>
+          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">Outreach lifecycle updated.</div>
+        ) : null}
+        {outreachUpdateStatus === "error" ? (
+          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">Outreach lifecycle update failed: {actionMessage || "Please try again."}</div>
         ) : null}
 
         <section className="grid gap-4 lg:grid-cols-2">
@@ -104,7 +109,11 @@ export default async function CompanyDetailPage({
             <dl className="mt-3 space-y-2 text-sm">
               <div><dt className="font-medium">Current Stage</dt><dd>{company.pipeline_stage}</dd></div>
               <div><dt className="font-medium">Last Touched</dt><dd>{formatDateValue(company.last_touched_at)}</dd></div>
-              <div><dt className="font-medium">Next Follow-up</dt><dd>{formatDateValue(company.next_follow_up_at)}</dd></div>
+              <div><dt className="font-medium">Follow-up Due</dt><dd>{formatDateValue(company.follow_up_due_at)}</dd></div>
+              <div><dt className="font-medium">First Contacted</dt><dd>{formatDateValue(company.first_contacted_at)}</dd></div>
+              <div><dt className="font-medium">Draft Status</dt><dd>{company.outreach_draft_status}</dd></div>
+              <div><dt className="font-medium">Send Status</dt><dd>{company.outreach_send_status}</dd></div>
+              <div><dt className="font-medium">Stop Reason</dt><dd>{company.stop_reason || "None"}</dd></div>
               <div><dt className="font-medium">Next Recommended Action</dt><dd>{company.next_recommended_action}</dd></div>
               <div><dt className="font-medium">Category</dt><dd>{company.primary_category}</dd></div>
               <div><dt className="font-medium">Address</dt><dd>{company.formatted_address}</dd></div>
@@ -137,7 +146,7 @@ export default async function CompanyDetailPage({
                   id="next_follow_up_at"
                   name="next_follow_up_at"
                   type="date"
-                  defaultValue={toDateInputValue(company.next_follow_up_at)}
+                  defaultValue={toDateInputValue(company.follow_up_due_at)}
                   className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
                 />
               </div>
@@ -160,42 +169,54 @@ export default async function CompanyDetailPage({
           </article>
 
           <article className="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="text-lg font-semibold">Discovery Runs + Qualification</h2>
-            <form action={runMockContactDiscoveryAction} className="mt-3">
-              <input type="hidden" name="company_id" value={company.id} />
-              <FormSubmitButton
-                idleLabel="Find Contacts (mock run)"
-                pendingLabel="Running mock discovery..."
-                className="rounded bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
-              />
-            </form>
-            <form action={autoSelectBestContactAction} className="mt-3">
-              <input type="hidden" name="company_id" value={company.id} />
-              <FormSubmitButton
-                idleLabel="Auto-select best contact"
-                pendingLabel="Selecting..."
-                className="rounded border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              />
-            </form>
-            <p className="mt-2 text-xs text-slate-600">
-              Best contact uses confidence score + title relevance + contact type + verification signal.
-            </p>
-            {bestContact ? (
-              <p className="mt-2 text-sm text-slate-700">Current best contact: <span className="font-medium">{bestContact.full_name}</span></p>
-            ) : null}
-            {discoveryRuns.length ? (
-              <ul className="mt-3 space-y-2 text-sm">
-                {discoveryRuns.map((run) => (
-                  <li key={run.id} className="rounded border border-slate-200 p-2">
-                    <p className="font-medium">Status: {run.status}</p>
-                    <p>Pages scanned: {run.pages_scanned}</p>
-                    <p>Contacts found: {run.contacts_found}</p>
-                  </li>
+            <h2 className="text-lg font-semibold">Outreach Engine</h2>
+            <div className="mt-3 space-y-2">
+              <form action={generatePrimaryDraftAction}>
+                <input type="hidden" name="company_id" value={company.id} />
+                <FormSubmitButton idleLabel="Generate primary draft" pendingLabel="Generating..." className="rounded bg-brand-600 px-3 py-2 text-sm font-medium text-white" />
+              </form>
+              <form action={updateOutreachLifecycleAction}>
+                <input type="hidden" name="company_id" value={company.id} />
+                <input type="hidden" name="transition" value="mark_ready" />
+                <FormSubmitButton idleLabel="Mark draft ready" pendingLabel="Saving..." className="rounded border border-slate-300 px-3 py-2 text-sm" />
+              </form>
+              <form action={updateOutreachLifecycleAction}>
+                <input type="hidden" name="company_id" value={company.id} />
+                <input type="hidden" name="transition" value="mark_contacted" />
+                <FormSubmitButton idleLabel="Mark contacted" pendingLabel="Saving..." className="rounded border border-slate-300 px-3 py-2 text-sm" />
+              </form>
+              <form action={updateOutreachLifecycleAction} className="flex flex-wrap items-end gap-2">
+                <input type="hidden" name="company_id" value={company.id} />
+                <input type="hidden" name="transition" value="schedule_follow_up" />
+                <div>
+                  <label htmlFor="follow_up_due_at" className="mb-1 block text-xs font-medium">Follow-up date</label>
+                  <input id="follow_up_due_at" name="follow_up_due_at" type="date" defaultValue={toDateInputValue(company.follow_up_due_at)} className="rounded border border-slate-300 px-2 py-1.5 text-sm" />
+                </div>
+                <FormSubmitButton idleLabel="Schedule follow-up" pendingLabel="Scheduling..." className="rounded border border-slate-300 px-3 py-2 text-sm" />
+              </form>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {[
+                  { label: "Mark replied", value: "mark_replied" },
+                  { label: "Mark qualified", value: "mark_qualified" },
+                  { label: "Mark won", value: "mark_won" },
+                ].map((item) => (
+                  <form action={updateOutreachLifecycleAction} key={item.value}>
+                    <input type="hidden" name="company_id" value={company.id} />
+                    <input type="hidden" name="transition" value={item.value} />
+                    <FormSubmitButton idleLabel={item.label} pendingLabel="Saving..." className="rounded border border-slate-300 px-3 py-1.5 text-xs" />
+                  </form>
                 ))}
-              </ul>
-            ) : (
-              <p className="mt-3 text-sm text-slate-600">No discovery runs yet for this company.</p>
-            )}
+              </div>
+              <form action={updateOutreachLifecycleAction} className="rounded border border-slate-200 p-2">
+                <input type="hidden" name="company_id" value={company.id} />
+                <input type="hidden" name="transition" value="mark_lost" />
+                <label className="mb-1 block text-xs font-medium" htmlFor="stop_reason">Mark lost (stop reason)</label>
+                <input id="stop_reason" name="stop_reason" defaultValue={company.stop_reason ?? ""} className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm" />
+                <div className="mt-2">
+                  <FormSubmitButton idleLabel="Mark lost" pendingLabel="Saving..." className="rounded border border-rose-300 px-3 py-1.5 text-xs text-rose-700" />
+                </div>
+              </form>
+            </div>
           </article>
         </section>
 
@@ -205,9 +226,62 @@ export default async function CompanyDetailPage({
             <p className="mt-3 whitespace-pre-line text-sm">{summary}</p>
           </article>
           <article className="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="text-lg font-semibold">Mock Outreach Draft</h2>
-            <p className="mt-3 whitespace-pre-line text-sm">{outreachDraft}</p>
+            <h2 className="text-lg font-semibold">Primary Outreach Draft</h2>
+            <p className="mt-3 whitespace-pre-line text-sm">{company.primary_draft || "No draft generated yet."}</p>
           </article>
+        </section>
+
+        <section className="mt-4 rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="text-lg font-semibold">Activity Timeline</h2>
+          {outreachActivities.length ? (
+            <ul className="mt-3 space-y-2 text-sm">
+              {outreachActivities.map((activity) => (
+                <li key={activity.id} className="rounded border border-slate-200 p-2">
+                  <p className="font-medium">{activity.activity_type}</p>
+                  <p>{activity.activity_note}</p>
+                  <p className="text-xs text-slate-500">{new Date(activity.occurred_at).toLocaleString()}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-sm text-slate-600">No outreach lifecycle activity yet.</p>
+          )}
+        </section>
+
+        <section className="mt-4 rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="text-lg font-semibold">Discovery Runs + Qualification</h2>
+          <form action={runMockContactDiscoveryAction} className="mt-3">
+            <input type="hidden" name="company_id" value={company.id} />
+            <FormSubmitButton
+              idleLabel="Find Contacts (mock run)"
+              pendingLabel="Running mock discovery..."
+              className="rounded bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </form>
+          <form action={autoSelectBestContactAction} className="mt-3">
+            <input type="hidden" name="company_id" value={company.id} />
+            <FormSubmitButton
+              idleLabel="Auto-select best contact"
+              pendingLabel="Selecting..."
+              className="rounded border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </form>
+          {bestContact ? (
+            <p className="mt-2 text-sm text-slate-700">Current best contact: <span className="font-medium">{bestContact.full_name}</span></p>
+          ) : null}
+          {discoveryRuns.length ? (
+            <ul className="mt-3 space-y-2 text-sm">
+              {discoveryRuns.map((run) => (
+                <li key={run.id} className="rounded border border-slate-200 p-2">
+                  <p className="font-medium">Status: {run.status}</p>
+                  <p>Pages scanned: {run.pages_scanned}</p>
+                  <p>Contacts found: {run.contacts_found}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-slate-600">No discovery runs yet for this company.</p>
+          )}
         </section>
 
         <section className="mt-4">

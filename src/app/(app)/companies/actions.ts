@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { pipelineStages } from "@/lib/pipeline";
 import { PipelineStage } from "@/lib/types";
-import { importMockCompany, seedSmokeTestData, updateCompanyDetails } from "@/lib/services/company-service";
-import { autoSelectBestContact, runMockContactDiscovery } from "@/lib/services/contact-service";
-import { createOutreachAttempt, updateOutreachAttempt } from "@/lib/services/outreach-service";
+import { getCompanyById, importMockCompany, seedSmokeTestData, updateCompanyDetails } from "@/lib/services/company-service";
+import { autoSelectBestContact, getContactsByCompanyId, runMockContactDiscovery } from "@/lib/services/contact-service";
+import { createOutreachAttempt, generatePrimaryDraft, updateOutreachAttempt, updateOutreachLifecycle } from "@/lib/services/outreach-service";
 
 const validStages = pipelineStages;
 
@@ -129,6 +129,28 @@ export async function createOutreachAttemptAction(formData: FormData) {
   redirect(`/companies/${companyId}?outreachCreate=success`);
 }
 
+export async function generatePrimaryDraftAction(formData: FormData) {
+  const companyId = String(formData.get("company_id") ?? "");
+
+  try {
+    const company = await getCompanyById(companyId);
+    if (!company) {
+      throw new Error("Company not found.");
+    }
+
+    const contacts = await getContactsByCompanyId(companyId);
+    const primary = contacts.find((contact) => contact.is_primary) ?? contacts[0] ?? null;
+    await generatePrimaryDraft(company, primary);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to generate draft.";
+    redirect(`/companies/${companyId}?outreachUpdate=error&message=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath(`/companies/${companyId}`);
+  revalidatePath("/pipeline");
+  redirect(`/companies/${companyId}?outreachUpdate=success`);
+}
+
 export async function runMockContactDiscoveryAction(formData: FormData) {
   const companyId = String(formData.get("company_id") ?? "");
 
@@ -165,6 +187,86 @@ export async function autoSelectBestContactAction(formData: FormData) {
   revalidatePath("/contacts");
   revalidatePath("/pipeline");
   redirect(`/companies/${companyId}?companyUpdate=success`);
+}
+
+export async function updateOutreachLifecycleAction(formData: FormData) {
+  const companyId = String(formData.get("company_id") ?? "");
+  const transition = String(formData.get("transition") ?? "");
+
+  try {
+    const company = await getCompanyById(companyId);
+    if (!company) {
+      throw new Error("Company not found.");
+    }
+
+    if (transition === "mark_ready") {
+      await updateOutreachLifecycle(company, {
+        draftStatus: "ready",
+        stage: "draft_ready",
+        activityType: "draft_marked_ready",
+        activityNote: "Draft marked ready for human-approved send.",
+      });
+    } else if (transition === "mark_contacted") {
+      await updateOutreachLifecycle(company, {
+        sendStatus: "contacted",
+        stage: "contacted",
+        firstContactedAt: company.first_contacted_at ?? new Date().toISOString(),
+        activityType: "contacted",
+        activityNote: "Marked as first contact completed (human approved).",
+      });
+    } else if (transition === "schedule_follow_up") {
+      const dueDate = String(formData.get("follow_up_due_at") ?? "");
+      if (!dueDate) {
+        throw new Error("Select a follow-up date.");
+      }
+      await updateOutreachLifecycle(company, {
+        followUpDueAt: new Date(dueDate).toISOString(),
+        stage: "follow_up_due",
+        activityType: "follow_up_scheduled",
+        activityNote: `Follow-up scheduled for ${new Date(dueDate).toLocaleDateString()}.`,
+      });
+    } else if (transition === "mark_replied") {
+      await updateOutreachLifecycle(company, {
+        sendStatus: "replied",
+        stage: "replied",
+        activityType: "status_updated",
+        activityNote: "Lead marked as replied.",
+      });
+    } else if (transition === "mark_qualified") {
+      await updateOutreachLifecycle(company, {
+        sendStatus: "qualified",
+        stage: "qualified",
+        activityType: "status_updated",
+        activityNote: "Lead marked as qualified.",
+      });
+    } else if (transition === "mark_won") {
+      await updateOutreachLifecycle(company, {
+        sendStatus: "won",
+        stage: "won",
+        activityType: "status_updated",
+        activityNote: "Opportunity marked as won.",
+      });
+    } else if (transition === "mark_lost") {
+      const stopReason = String(formData.get("stop_reason") ?? "No reason provided");
+      await updateOutreachLifecycle(company, {
+        sendStatus: "lost",
+        stage: "lost",
+        stopReason,
+        activityType: "stopped",
+        activityNote: `Lead marked lost. Reason: ${stopReason}`,
+      });
+    } else {
+      throw new Error("Invalid outreach transition.");
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to update outreach lifecycle.";
+    redirect(`/companies/${companyId}?outreachUpdate=error&message=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath(`/companies/${companyId}`);
+  revalidatePath("/pipeline");
+  revalidatePath("/dashboard");
+  redirect(`/companies/${companyId}?outreachUpdate=success`);
 }
 
 export async function updateOutreachAttemptAction(formData: FormData) {

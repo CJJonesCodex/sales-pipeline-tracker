@@ -1,4 +1,4 @@
-# Sales Pipeline Tracker (V1 + Milestone 3.5)
+# Sales Pipeline Tracker (V1 + Milestone 5)
 
 Beginner-friendly web app shell for discovering local companies, importing them into a CRM-style workflow, reviewing contacts, and drafting outreach.
 
@@ -57,6 +57,57 @@ Still intentionally mocked in Milestone 3.5:
 - crawling/extraction from live websites
 - AI summaries and AI outreach draft generation
 - outbound email sending
+
+## Milestone 5: Outreach Engine + Follow-up Automation
+
+### Outreach lifecycle statuses
+
+Each company now stores outreach lifecycle state directly in `companies`:
+
+- `outreach_draft_status`
+  - `not_started`
+  - `generated`
+  - `ready`
+- `outreach_send_status`
+  - `not_contacted`
+  - `contacted`
+  - `replied`
+  - `qualified`
+  - `won`
+  - `lost`
+  - `stopped`
+
+### New outreach fields persisted per company
+
+- `primary_draft` (main draft text snapshot shown in UI)
+- `outreach_draft_status`
+- `outreach_send_status`
+- `first_contacted_at`
+- `follow_up_due_at`
+- `last_touched_at` (existing, now updated by outreach transitions)
+- `stop_reason`
+
+### Outreach activity timeline
+
+Company detail now includes an outreach timeline powered by a new table:
+
+- `outreach_activities`
+  - stores activity type, note, and timestamp
+  - records lifecycle events like draft generation, draft-ready, contacted, follow-up scheduling, and stop/loss updates
+
+### Follow-up timing behavior
+
+- Follow-up remains human-controlled.
+- User picks a follow-up date from Company Detail.
+- App persists date to both:
+  - `follow_up_due_at` (new outreach lifecycle field)
+  - `next_follow_up_at` (existing pipeline compatibility field)
+- Pipeline recommendations update to instruct follow-up using that due date.
+
+### Human-approved send policy (still enforced)
+
+- App does **not** send outbound emails automatically.
+- Lifecycle actions only mark readiness, contacted state, and outcomes after human action.
 
 
 
@@ -117,7 +168,7 @@ Still mocked intentionally:
 - Importing discovered companies into the real `companies` table
 - Company detail, contacts, dashboard, and pipeline pages backed by Supabase
 
-### Mocked in Milestone 3.5
+### Mocked in Milestone 3.5 and Milestone 5
 
 - Area discovery provider for finding companies by zip/address and radius (mock dataset + mock distance matching)
 - Website verification provider and confidence scoring inputs

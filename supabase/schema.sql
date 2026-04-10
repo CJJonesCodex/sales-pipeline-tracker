@@ -22,6 +22,12 @@ create table if not exists public.companies (
   notes text not null default '',
   last_touched_at timestamptz not null default now(),
   next_follow_up_at timestamptz,
+  primary_draft text not null default '',
+  outreach_draft_status text not null default 'not_started' check (outreach_draft_status in ('not_started', 'generated', 'ready')),
+  outreach_send_status text not null default 'not_contacted' check (outreach_send_status in ('not_contacted', 'contacted', 'replied', 'qualified', 'won', 'lost', 'stopped')),
+  first_contacted_at timestamptz,
+  follow_up_due_at timestamptz,
+  stop_reason text,
   next_recommended_action text not null default 'Verify official website',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -77,10 +83,21 @@ create table if not exists public.outreach_attempts (
   status text not null check (status in ('not_sent', 'sent', 'replied', 'bounced'))
 );
 
+create table if not exists public.outreach_activities (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  company_id uuid not null references public.companies(id) on delete cascade,
+  activity_type text not null check (activity_type in ('draft_generated', 'draft_marked_ready', 'contacted', 'follow_up_scheduled', 'stage_updated', 'status_updated', 'stopped')),
+  activity_note text not null default '',
+  occurred_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
 alter table public.companies enable row level security;
 alter table public.contacts enable row level security;
 alter table public.discovery_runs enable row level security;
 alter table public.outreach_attempts enable row level security;
+alter table public.outreach_activities enable row level security;
 
 create policy "companies_owner_all" on public.companies
   for all
@@ -98,6 +115,11 @@ create policy "discovery_runs_owner_all" on public.discovery_runs
   with check (auth.uid() = user_id);
 
 create policy "outreach_attempts_owner_all" on public.outreach_attempts
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "outreach_activities_owner_all" on public.outreach_activities
   for all
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);

@@ -40,6 +40,12 @@ export type Database = {
           notes: string;
           last_touched_at: string;
           next_follow_up_at: string | null;
+          primary_draft: string;
+          outreach_draft_status: "not_started" | "generated" | "ready";
+          outreach_send_status: "not_contacted" | "contacted" | "replied" | "qualified" | "won" | "lost" | "stopped";
+          first_contacted_at: string | null;
+          follow_up_due_at: string | null;
+          stop_reason: string | null;
           next_recommended_action: string;
           created_at: string;
           updated_at: string;
@@ -112,6 +118,29 @@ export type Database = {
         };
         Insert: Omit<Database["public"]["Tables"]["outreach_attempts"]["Row"], "id"> & { id?: string };
         Update: Partial<Database["public"]["Tables"]["outreach_attempts"]["Insert"]>;
+      };
+      outreach_activities: {
+        Row: {
+          id: string;
+          user_id: string;
+          company_id: string;
+          activity_type:
+            | "draft_generated"
+            | "draft_marked_ready"
+            | "contacted"
+            | "follow_up_scheduled"
+            | "stage_updated"
+            | "status_updated"
+            | "stopped";
+          activity_note: string;
+          occurred_at: string;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["outreach_activities"]["Row"], "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["outreach_activities"]["Insert"]>;
       };
     };
     Views: Record<string, never>;
