@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { CompanySearchTable } from "@/components/companies/company-search-table";
-import { seedSmokeTestAction } from "@/app/(app)/companies/actions";
+import { importCsvAction, seedSmokeTestAction } from "@/app/(app)/companies/actions";
 import { PageHeader } from "@/components/ui/page-header";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { CsvImportPanel } from "@/components/companies/csv-import-panel";
 import {
   discoverCompaniesByArea,
   getImportedCompanyMapByExternalId,
@@ -18,6 +19,7 @@ export default async function CompaniesPage({
     seed?: string;
     companyId?: string;
     message?: string;
+    csv?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -29,6 +31,7 @@ export default async function CompaniesPage({
   const seedStatus = params.seed ?? "";
   const seededCompanyId = params.companyId ?? "";
   const importMessage = params.message ?? "";
+  const csvStatus = params.csv ?? "";
 
   try {
     const importedCompanyMap = await getImportedCompanyMapByExternalId();
@@ -103,6 +106,21 @@ export default async function CompaniesPage({
             Discovery is mocked in Milestone 3. Import writes selected companies into Supabase.
           </p>
         </form>
+
+
+        <CsvImportPanel importAction={importCsvAction} />
+
+        {csvStatus === "success" ? (
+          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+            CSV import complete. {importMessage || "Rows were saved to Supabase."}
+          </div>
+        ) : null}
+
+        {csvStatus === "error" ? (
+          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            CSV import failed: {importMessage || "Please review your headers and try again."}
+          </div>
+        ) : null}
 
         <section className="mb-4 rounded-lg border border-brand-100 bg-brand-50 p-4">
           <h2 className="text-base font-semibold text-brand-800">Seed smoke-test data</h2>

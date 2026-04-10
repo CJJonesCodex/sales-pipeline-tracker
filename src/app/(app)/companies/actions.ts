@@ -7,6 +7,8 @@ import { PipelineStage } from "@/lib/types";
 import { getCompanyById, importMockCompany, seedSmokeTestData, updateCompanyDetails } from "@/lib/services/company-service";
 import { autoSelectBestContact, getContactsByCompanyId, runMockContactDiscovery } from "@/lib/services/contact-service";
 import { createOutreachAttempt, generatePrimaryDraft, updateOutreachAttempt, updateOutreachLifecycle } from "@/lib/services/outreach-service";
+import { importCsvIntoSupabase } from "@/lib/services/csv-import-service";
+import { CsvImportType } from "@/lib/csv-import";
 
 const validStages = pipelineStages;
 
@@ -285,4 +287,33 @@ export async function updateOutreachAttemptAction(formData: FormData) {
 
   revalidatePath(`/companies/${companyId}`);
   redirect(`/companies/${companyId}?outreachUpdate=success`);
+}
+
+
+export async function importCsvAction(formData: FormData) {
+  const csvType = String(formData.get("csvType") ?? "") as CsvImportType;
+  const csvText = String(formData.get("csvText") ?? "");
+
+  if (!["companies", "contacts", "outreach_attempts"].includes(csvType)) {
+    redirect(`/companies?csv=error&message=${encodeURIComponent("Select a valid CSV import type.")}`);
+  }
+
+  if (!csvText.trim()) {
+    redirect(`/companies?csv=error&message=${encodeURIComponent("Upload a CSV file before importing.")}`);
+  }
+
+  try {
+    const result = await importCsvIntoSupabase(csvType, csvText);
+    revalidatePath("/companies");
+    revalidatePath("/contacts");
+    revalidatePath("/pipeline");
+    revalidatePath("/dashboard");
+
+    const details = `Imported ${result.inserted}, skipped ${result.skipped}`;
+    const firstError = result.errors[0] ? ` | ${result.errors[0]}` : "";
+    redirect(`/companies?csv=success&message=${encodeURIComponent(`${csvType}: ${details}${firstError}`)}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "CSV import failed.";
+    redirect(`/companies?csv=error&message=${encodeURIComponent(message)}`);
+  }
 }
