@@ -59,6 +59,55 @@ Still intentionally mocked in Milestone 3.5:
 - outbound email sending
 
 
+
+## Milestone 4: Pipeline Automation + Lead Qualification
+
+### Standard pipeline stages
+
+Companies now move through a standardized lead journey:
+
+- `new`
+- `website_verified`
+- `contacts_found`
+- `best_contact_selected`
+- `draft_ready`
+- `contacted`
+- `follow_up_due`
+- `replied`
+- `qualified`
+- `won`
+- `lost`
+
+### Automation behavior in UI
+
+- Every company now surfaces:
+  - current stage
+  - last touched date
+  - next follow-up date
+  - next recommended action
+- Company detail and pipeline views persist follow-up scheduling (`next_follow_up_at`) and update `last_touched_at`.
+- `next_recommended_action` is recomputed when stage or contact-selection context changes.
+
+### Best-contact qualification logic
+
+- Contacts can be marked as primary (`is_primary`) from Contacts and Company Detail views.
+- Auto-select best contact uses a weighted score based on:
+  - confidence score
+  - professional title keywords (owner/founder/director/manager/etc.)
+  - contact type (`person` > `department` > `generic inbox`)
+  - verification status (`verified`/`likely` bonus)
+- Best contact and qualification signals are visible in the contacts table and company workflow panels.
+
+### What remains mocked in Milestone 4
+
+Still mocked intentionally:
+
+- area/company discovery providers
+- website verification internals and score inputs
+- website crawl/extraction internals
+- AI summary + AI outreach generation internals
+- autonomous outbound email sending
+
 ## Milestone 3.5: Search + Discovery behavior
 
 ### Real in Milestone 3.5

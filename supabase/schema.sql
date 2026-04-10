@@ -18,8 +18,11 @@ create table if not exists public.companies (
   latitude double precision not null default 0,
   longitude double precision not null default 0,
   primary_category text not null default '',
-  pipeline_stage text not null check (pipeline_stage in ('Lead', 'Qualified', 'Contacted', 'Proposal', 'Won', 'Lost')),
+  pipeline_stage text not null check (pipeline_stage in ('new', 'website_verified', 'contacts_found', 'best_contact_selected', 'draft_ready', 'contacted', 'follow_up_due', 'replied', 'qualified', 'won', 'lost')),
   notes text not null default '',
+  last_touched_at timestamptz not null default now(),
+  next_follow_up_at timestamptz,
+  next_recommended_action text not null default 'Verify official website',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique(user_id, external_place_id)
@@ -39,6 +42,7 @@ create table if not exists public.contacts (
   source_url text not null default '',
   source_page_title text not null default '',
   verified_status text not null check (verified_status in ('verified', 'likely', 'unverified')),
+  is_primary boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

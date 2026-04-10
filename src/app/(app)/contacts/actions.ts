@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { updateContact } from "@/lib/services/contact-service";
+import { markPrimaryContact, updateContact } from "@/lib/services/contact-service";
 
 export async function updateContactAction(formData: FormData) {
   const contactId = String(formData.get("contactId") ?? "");
@@ -24,4 +24,23 @@ export async function updateContactAction(formData: FormData) {
 
   revalidatePath("/contacts");
   redirect("/contacts?contactUpdate=success");
+}
+
+export async function markPrimaryContactAction(formData: FormData) {
+  const contactId = String(formData.get("contactId") ?? "");
+  const companyId = String(formData.get("companyId") ?? "");
+  const returnTo = String(formData.get("returnTo") ?? "/contacts");
+
+  try {
+    await markPrimaryContact(companyId, contactId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to set primary contact.";
+    redirect(`${returnTo}?contactUpdate=error&message=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/contacts");
+  revalidatePath(`/companies/${companyId}`);
+  revalidatePath("/pipeline");
+  revalidatePath("/dashboard");
+  redirect(`${returnTo}?contactUpdate=success`);
 }

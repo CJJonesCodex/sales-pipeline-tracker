@@ -25,8 +25,22 @@ export type Database = {
           latitude: number;
           longitude: number;
           primary_category: string;
-          pipeline_stage: "Lead" | "Qualified" | "Contacted" | "Proposal" | "Won" | "Lost";
+          pipeline_stage:
+            | "new"
+            | "website_verified"
+            | "contacts_found"
+            | "best_contact_selected"
+            | "draft_ready"
+            | "contacted"
+            | "follow_up_due"
+            | "replied"
+            | "qualified"
+            | "won"
+            | "lost";
           notes: string;
+          last_touched_at: string;
+          next_follow_up_at: string | null;
+          next_recommended_action: string;
           created_at: string;
           updated_at: string;
         };
@@ -52,6 +66,7 @@ export type Database = {
           source_url: string;
           source_page_title: string;
           verified_status: "verified" | "likely" | "unverified";
+          is_primary: boolean;
           created_at: string;
           updated_at: string;
         };

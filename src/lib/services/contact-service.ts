@@ -1,6 +1,7 @@
-import { Contact, DiscoveryRun } from "@/lib/types";
+import { Contact, DiscoveryRun, PipelineStage } from "@/lib/types";
 import { supabaseRestRequest } from "@/lib/supabase/rest";
 import { getServerUser } from "@/lib/supabase/auth-helpers";
+import { getBestContact, getNextRecommendedAction } from "@/lib/pipeline";
 
 async function getCurrentUserId() {
   const user = await getServerUser();
@@ -44,6 +45,58 @@ export async function updateContact(
   return rows[0];
 }
 
+export async function markPrimaryContact(companyId: string, contactId: string) {
+  await supabaseRestRequest("contacts", {
+    method: "PATCH",
+    query: { company_id: `eq.${companyId}` },
+    body: { is_primary: false, updated_at: new Date().toISOString() },
+  });
+
+  const rows = await supabaseRestRequest<Contact[]>("contacts", {
+    method: "PATCH",
+    query: { select: "*", id: `eq.${contactId}`, company_id: `eq.${companyId}` },
+    body: { is_primary: true, updated_at: new Date().toISOString() },
+  });
+
+  if (!rows[0]) {
+    throw new Error("Unable to set primary contact.");
+  }
+
+  const companyRows = await supabaseRestRequest<{ pipeline_stage: string; next_follow_up_at: string | null }[]>("companies", {
+    query: { select: "pipeline_stage,next_follow_up_at", id: `eq.${companyId}`, limit: "1" },
+  });
+
+  if (companyRows[0]) {
+    await supabaseRestRequest("companies", {
+      method: "PATCH",
+      query: { id: `eq.${companyId}` },
+      body: {
+        next_recommended_action: getNextRecommendedAction({
+          stage: companyRows[0].pipeline_stage as PipelineStage,
+          hasContacts: true,
+          hasPrimaryContact: true,
+          nextFollowUpAt: companyRows[0].next_follow_up_at,
+        }),
+        last_touched_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    });
+  }
+
+  return rows[0];
+}
+
+export async function autoSelectBestContact(companyId: string) {
+  const contacts = await getContactsByCompanyId(companyId);
+  const bestContact = getBestContact(contacts);
+
+  if (!bestContact) {
+    return null;
+  }
+
+  return markPrimaryContact(companyId, bestContact.id);
+}
+
 export async function getDiscoveryRunsByCompanyId(companyId: string): Promise<DiscoveryRun[]> {
   return supabaseRestRequest<DiscoveryRun[]>("discovery_runs", {
     query: { select: "*", company_id: `eq.${companyId}`, order: "started_at.desc" },
@@ -70,6 +123,7 @@ export async function runMockContactDiscovery(companyId: string): Promise<{ cont
       source_url: "https://www.example.com/team",
       source_page_title: "Team",
       verified_status: "likely" as const,
+      is_primary: false,
     },
     {
       full_name: "Front Desk",
@@ -82,6 +136,7 @@ export async function runMockContactDiscovery(companyId: string): Promise<{ cont
       source_url: "https://www.example.com/contact",
       source_page_title: "Contact",
       verified_status: "unverified" as const,
+      is_primary: false,
     },
   ];
 
@@ -119,6 +174,8 @@ export async function runMockContactDiscovery(companyId: string): Promise<{ cont
       error_log: "",
     },
   });
+
+  await autoSelectBestContact(companyId);
 
   return { contactsCreated: contactsToInsert.length };
 }
