@@ -1,5 +1,16 @@
 export type WebsiteStatus = "verified" | "likely" | "mismatch" | "missing";
-export type PipelineStage = "Lead" | "Qualified" | "Contacted" | "Proposal" | "Won" | "Lost";
+export type PipelineStage =
+  | "new"
+  | "website_verified"
+  | "contacts_found"
+  | "best_contact_selected"
+  | "draft_ready"
+  | "contacted"
+  | "follow_up_due"
+  | "replied"
+  | "qualified"
+  | "won"
+  | "lost";
 
 export type Company = {
   id: string;
@@ -17,6 +28,9 @@ export type Company = {
   primary_category: string;
   pipeline_stage: PipelineStage;
   notes: string;
+  last_touched_at: string;
+  next_follow_up_at: string | null;
+  next_recommended_action: string;
   created_at: string;
   updated_at: string;
 };
@@ -34,6 +48,7 @@ export type Contact = {
   source_url: string;
   source_page_title: string;
   verified_status: "verified" | "likely" | "unverified";
+  is_primary: boolean;
   created_at: string;
   updated_at: string;
 };

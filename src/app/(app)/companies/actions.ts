@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { pipelineStages } from "@/lib/pipeline";
 import { PipelineStage } from "@/lib/types";
 import { importMockCompany, seedSmokeTestData, updateCompanyDetails } from "@/lib/services/company-service";
-import { runMockContactDiscovery } from "@/lib/services/contact-service";
+import { autoSelectBestContact, runMockContactDiscovery } from "@/lib/services/contact-service";
 import { createOutreachAttempt, updateOutreachAttempt } from "@/lib/services/outreach-service";
 
-const validStages: PipelineStage[] = ["Lead", "Qualified", "Contacted", "Proposal", "Won", "Lost"];
+const validStages = pipelineStages;
 
 export async function importCompanyAction(formData: FormData) {
   const companyId = String(formData.get("companyId") ?? "");
@@ -55,7 +56,10 @@ export async function seedSmokeTestAction() {
 export async function updateCompanyAction(formData: FormData) {
   const companyId = String(formData.get("companyId") ?? "");
   const notes = String(formData.get("notes") ?? "");
-  const pipelineStage = String(formData.get("pipeline_stage") ?? "Lead") as PipelineStage;
+  const pipelineStage = String(formData.get("pipeline_stage") ?? "new") as PipelineStage;
+  const nextFollowUpAt = String(formData.get("next_follow_up_at") ?? "");
+  const hasContacts = String(formData.get("has_contacts") ?? "false") === "true";
+  const hasPrimaryContact = String(formData.get("has_primary_contact") ?? "false") === "true";
 
   if (!validStages.includes(pipelineStage)) {
     redirect(`/companies/${companyId}?companyUpdate=error&message=${encodeURIComponent("Invalid pipeline stage.")}`);
@@ -65,6 +69,9 @@ export async function updateCompanyAction(formData: FormData) {
     await updateCompanyDetails(companyId, {
       notes,
       pipeline_stage: pipelineStage,
+      next_follow_up_at: nextFollowUpAt ? new Date(nextFollowUpAt).toISOString() : null,
+      has_contacts: hasContacts,
+      has_primary_contact: hasPrimaryContact,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to save company updates.";
@@ -79,7 +86,7 @@ export async function updateCompanyAction(formData: FormData) {
 
 export async function updatePipelineStageAction(formData: FormData) {
   const companyId = String(formData.get("companyId") ?? "");
-  const pipelineStage = String(formData.get("pipeline_stage") ?? "Lead") as PipelineStage;
+  const pipelineStage = String(formData.get("pipeline_stage") ?? "new") as PipelineStage;
 
   if (!validStages.includes(pipelineStage)) {
     redirect(`/pipeline?stageUpdate=error&message=${encodeURIComponent("Invalid pipeline stage.")}`);
@@ -89,6 +96,9 @@ export async function updatePipelineStageAction(formData: FormData) {
     await updateCompanyDetails(companyId, {
       notes: String(formData.get("notes") ?? ""),
       pipeline_stage: pipelineStage,
+      next_follow_up_at: String(formData.get("next_follow_up_at") ?? "") || null,
+      has_contacts: String(formData.get("has_contacts") ?? "false") === "true",
+      has_primary_contact: String(formData.get("has_primary_contact") ?? "false") === "true",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to update pipeline stage.";
@@ -139,6 +149,22 @@ export async function runMockContactDiscoveryAction(formData: FormData) {
     const message = error instanceof Error ? error.message : "Discovery failed.";
     redirect(`/companies/${companyId}?discovery=error&message=${encodeURIComponent(message)}`);
   }
+}
+
+export async function autoSelectBestContactAction(formData: FormData) {
+  const companyId = String(formData.get("company_id") ?? "");
+
+  try {
+    await autoSelectBestContact(companyId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to auto-select best contact.";
+    redirect(`/companies/${companyId}?companyUpdate=error&message=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath(`/companies/${companyId}`);
+  revalidatePath("/contacts");
+  revalidatePath("/pipeline");
+  redirect(`/companies/${companyId}?companyUpdate=success`);
 }
 
 export async function updateOutreachAttemptAction(formData: FormData) {

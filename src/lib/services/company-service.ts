@@ -4,6 +4,7 @@ import { companies as mockCompanies } from "@/lib/mock-data/companies";
 import { contacts as mockContacts } from "@/lib/mock-data/contacts";
 import { discoveryRuns as mockDiscoveryRuns } from "@/lib/mock-data/discovery-runs";
 import { outreachAttempts as mockOutreachAttempts } from "@/lib/mock-data/outreach-attempts";
+import { getNextRecommendedAction } from "@/lib/pipeline";
 import { Company, PipelineStage } from "@/lib/types";
 
 async function getCurrentUserId() {
@@ -16,10 +17,32 @@ async function getCurrentUserId() {
   return user.id;
 }
 
+function normalizePipelineStage(stage: string): PipelineStage {
+  const stageMap: Record<string, PipelineStage> = {
+    Lead: "new",
+    Qualified: "qualified",
+    Contacted: "contacted",
+    Proposal: "draft_ready",
+    Won: "won",
+    Lost: "lost",
+  };
+
+  if (stage in stageMap) {
+    return stageMap[stage];
+  }
+
+  return stage as PipelineStage;
+}
+
 export async function getImportedCompanies(): Promise<Company[]> {
-  return supabaseRestRequest<Company[]>("companies", {
+  const companies = await supabaseRestRequest<Company[]>("companies", {
     query: { select: "*", order: "created_at.desc" },
   });
+
+  return companies.map((company) => ({
+    ...company,
+    pipeline_stage: normalizePipelineStage(company.pipeline_stage),
+  }));
 }
 
 export async function getImportedCompanyMapByExternalId() {
@@ -32,7 +55,14 @@ export async function getCompanyById(companyId: string): Promise<Company | null>
     query: { select: "*", id: `eq.${companyId}`, limit: "1" },
   });
 
-  return rows[0] ?? null;
+  if (!rows[0]) {
+    return null;
+  }
+
+  return {
+    ...rows[0],
+    pipeline_stage: normalizePipelineStage(rows[0].pipeline_stage),
+  };
 }
 
 const mockAreaCenters: Record<string, { latitude: number; longitude: number }> = {
@@ -144,6 +174,9 @@ export async function importMockCompany(companyId: string): Promise<Company> {
     primary_category: selectedCompany.primary_category,
     pipeline_stage: selectedCompany.pipeline_stage,
     notes: selectedCompany.notes,
+    last_touched_at: new Date().toISOString(),
+    next_follow_up_at: selectedCompany.next_follow_up_at,
+    next_recommended_action: selectedCompany.next_recommended_action,
   };
 
   const rows = await supabaseRestRequest<Company[]>("companies", {
@@ -156,19 +189,41 @@ export async function importMockCompany(companyId: string): Promise<Company> {
     body: payload,
   });
 
-  return rows[0];
+  return {
+    ...rows[0],
+    pipeline_stage: normalizePipelineStage(rows[0].pipeline_stage),
+  };
 }
 
 export async function updateCompanyDetails(
   companyId: string,
-  updates: { notes: string; pipeline_stage: PipelineStage },
+  updates: {
+    notes: string;
+    pipeline_stage: PipelineStage;
+    next_follow_up_at?: string | null;
+    next_recommended_action?: string;
+    has_contacts?: boolean;
+    has_primary_contact?: boolean;
+  },
 ): Promise<Company> {
+  const computedRecommendedAction =
+    updates.next_recommended_action ??
+    getNextRecommendedAction({
+      stage: updates.pipeline_stage,
+      hasContacts: updates.has_contacts ?? true,
+      hasPrimaryContact: updates.has_primary_contact ?? true,
+      nextFollowUpAt: updates.next_follow_up_at ?? null,
+    });
+
   const rows = await supabaseRestRequest<Company[]>("companies", {
     method: "PATCH",
     query: { select: "*", id: `eq.${companyId}` },
     body: {
       notes: updates.notes,
       pipeline_stage: updates.pipeline_stage,
+      next_follow_up_at: updates.next_follow_up_at ?? null,
+      next_recommended_action: computedRecommendedAction,
+      last_touched_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
   });
@@ -177,7 +232,10 @@ export async function updateCompanyDetails(
     throw new Error("Unable to update company.");
   }
 
-  return rows[0];
+  return {
+    ...rows[0],
+    pipeline_stage: normalizePipelineStage(rows[0].pipeline_stage),
+  };
 }
 
 export function getMockWebsiteVerificationReason(company: Company): string {
@@ -223,6 +281,9 @@ export async function seedSmokeTestData() {
       primary_category: selectedCompany.primary_category,
       pipeline_stage: selectedCompany.pipeline_stage,
       notes: selectedCompany.notes,
+      last_touched_at: new Date().toISOString(),
+      next_follow_up_at: selectedCompany.next_follow_up_at,
+      next_recommended_action: selectedCompany.next_recommended_action,
     },
   });
 
@@ -255,6 +316,7 @@ export async function seedSmokeTestData() {
           source_url: seededContactTemplate.source_url,
           source_page_title: seededContactTemplate.source_page_title,
           verified_status: seededContactTemplate.verified_status,
+          is_primary: true,
           created_at: nowIso,
           updated_at: nowIso,
         },
