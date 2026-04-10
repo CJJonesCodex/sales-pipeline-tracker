@@ -41,18 +41,22 @@ export async function importCompanyAction(formData: FormData) {
 }
 
 export async function seedSmokeTestAction() {
+  let successCompanyId = "";
+
   try {
     const result = await seedSmokeTestData();
+    successCompanyId = result.companyId;
     revalidatePath("/companies");
     revalidatePath(`/companies/${result.companyId}`);
     revalidatePath("/contacts");
     revalidatePath("/pipeline");
     revalidatePath("/dashboard");
-    redirect(`/companies?seed=success&companyId=${encodeURIComponent(result.companyId)}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to seed data.";
     redirect(`/companies?seed=error&message=${encodeURIComponent(message)}`);
   }
+
+  redirect(`/companies?seed=success&companyId=${encodeURIComponent(successCompanyId)}`);
 }
 
 export async function updateCompanyAction(formData: FormData) {
@@ -302,6 +306,8 @@ export async function importCsvAction(formData: FormData) {
     redirect(`/companies?csv=error&message=${encodeURIComponent("Upload a CSV file before importing.")}`);
   }
 
+  let successMessage = "";
+
   try {
     const result = await importCsvIntoSupabase(csvType, csvText);
     revalidatePath("/companies");
@@ -311,9 +317,11 @@ export async function importCsvAction(formData: FormData) {
 
     const details = `Imported ${result.inserted}, skipped ${result.skipped}`;
     const firstError = result.errors[0] ? ` | ${result.errors[0]}` : "";
-    redirect(`/companies?csv=success&message=${encodeURIComponent(`${csvType}: ${details}${firstError}`)}`);
+    successMessage = `${csvType}: ${details}${firstError}`;
   } catch (error) {
     const message = error instanceof Error ? error.message : "CSV import failed.";
     redirect(`/companies?csv=error&message=${encodeURIComponent(message)}`);
   }
+
+  redirect(`/companies?csv=success&message=${encodeURIComponent(successMessage)}`);
 }
