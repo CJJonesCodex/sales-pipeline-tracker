@@ -234,6 +234,71 @@ npm run build
 npm run start
 ```
 
+## Direct CSV import (Supabase-backed CRM)
+
+You can now upload CSV files directly in the `/companies` page using **Direct CSV Import (Supabase)**.
+
+### CSV flow
+
+1. Go to `/companies` after signing in.
+2. In **Direct CSV Import (Supabase)** choose one type:
+   - Companies
+   - Contacts
+   - Outreach Attempts
+3. Upload a `.csv` file.
+4. Review the parsed row preview in the UI.
+5. Click **Import into Supabase**.
+6. Review success/error banners for inserted/skipped row counts.
+
+### Exact required headers
+
+The uploader validates these required headers before import:
+
+- **Companies CSV required headers**
+  - `external_place_id`
+  - `company_name`
+  - `website_status`
+  - `pipeline_stage`
+- **Contacts CSV required headers**
+  - `company_external_place_id`
+  - `full_name`
+  - `contact_type`
+  - `verified_status`
+- **OutreachAttempts CSV required headers**
+  - `company_external_place_id`
+  - `contact_email`
+  - `sequence_number`
+  - `draft_status`
+  - `status`
+
+### Full expected headers by CSV type
+
+#### Companies
+
+`external_place_id,company_name,website_url,website_status,main_phone,formatted_address,city,state,zip,latitude,longitude,primary_category,pipeline_stage,notes`
+
+#### Contacts
+
+`company_external_place_id,full_name,professional_title,bio_snippet,email,phone,contact_type,confidence_score,source_url,source_page_title,verified_status,is_primary`
+
+#### OutreachAttempts
+
+`company_external_place_id,contact_email,sequence_number,channel,draft_status,subject_line,body_snapshot,drafted_at,sent_at,reply_received_at,bounce_at,status`
+
+### Duplicate handling and row mapping
+
+- **Companies import**
+  - Maps each row directly into `companies`.
+  - Uses `user_id + external_place_id` upsert conflict handling to prevent duplicates.
+- **Contacts import**
+  - Resolves `company_external_place_id` → `companies.id` first.
+  - Rows with missing company mapping are skipped with friendly row errors.
+  - Duplicate prevention checks existing `contacts` by `company_id + email` and skips those rows.
+- **OutreachAttempts import**
+  - Resolves company via `company_external_place_id`, then resolves contact via `contact_email` inside that company.
+  - Rows with missing company/contact mapping are skipped with row-level errors.
+  - Duplicate prevention checks existing `outreach_attempts` by `contact_id + sequence_number` and skips duplicates.
+
 ## Test Readiness / Smoke Test phase
 
 Use this phase whenever M4–M6 code is merged or rebased to verify that auth, CRM persistence, discovery, website status display, contact extraction, and AI surfaces are logically connected.
