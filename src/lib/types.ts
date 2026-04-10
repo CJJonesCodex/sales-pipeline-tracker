@@ -1,4 +1,6 @@
 export type WebsiteStatus = "verified" | "likely" | "mismatch" | "missing";
+export type OutreachDraftStatus = "not_started" | "generated" | "ready";
+export type OutreachSendStatus = "not_contacted" | "contacted" | "replied" | "qualified" | "won" | "lost" | "stopped";
 export type PipelineStage =
   | "new"
   | "website_verified"
@@ -30,6 +32,12 @@ export type Company = {
   notes: string;
   last_touched_at: string;
   next_follow_up_at: string | null;
+  primary_draft: string;
+  outreach_draft_status: OutreachDraftStatus;
+  outreach_send_status: OutreachSendStatus;
+  first_contacted_at: string | null;
+  follow_up_due_at: string | null;
+  stop_reason: string | null;
   next_recommended_action: string;
   created_at: string;
   updated_at: string;

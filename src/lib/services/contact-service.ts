@@ -75,7 +75,7 @@ export async function markPrimaryContact(companyId: string, contactId: string) {
           stage: companyRows[0].pipeline_stage as PipelineStage,
           hasContacts: true,
           hasPrimaryContact: true,
-          nextFollowUpAt: companyRows[0].next_follow_up_at,
+          followUpDueAt: companyRows[0].next_follow_up_at,
         }),
         last_touched_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

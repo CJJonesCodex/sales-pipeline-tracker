@@ -176,6 +176,12 @@ export async function importMockCompany(companyId: string): Promise<Company> {
     notes: selectedCompany.notes,
     last_touched_at: new Date().toISOString(),
     next_follow_up_at: selectedCompany.next_follow_up_at,
+    primary_draft: "",
+    outreach_draft_status: "not_started",
+    outreach_send_status: "not_contacted",
+    first_contacted_at: null,
+    follow_up_due_at: selectedCompany.next_follow_up_at,
+    stop_reason: null,
     next_recommended_action: selectedCompany.next_recommended_action,
   };
 
@@ -212,7 +218,7 @@ export async function updateCompanyDetails(
       stage: updates.pipeline_stage,
       hasContacts: updates.has_contacts ?? true,
       hasPrimaryContact: updates.has_primary_contact ?? true,
-      nextFollowUpAt: updates.next_follow_up_at ?? null,
+      followUpDueAt: updates.next_follow_up_at ?? null,
     });
 
   const rows = await supabaseRestRequest<Company[]>("companies", {
@@ -222,6 +228,7 @@ export async function updateCompanyDetails(
       notes: updates.notes,
       pipeline_stage: updates.pipeline_stage,
       next_follow_up_at: updates.next_follow_up_at ?? null,
+      follow_up_due_at: updates.next_follow_up_at ?? null,
       next_recommended_action: computedRecommendedAction,
       last_touched_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -283,6 +290,12 @@ export async function seedSmokeTestData() {
       notes: selectedCompany.notes,
       last_touched_at: new Date().toISOString(),
       next_follow_up_at: selectedCompany.next_follow_up_at,
+      primary_draft: "",
+      outreach_draft_status: "not_started",
+      outreach_send_status: "not_contacted",
+      first_contacted_at: null,
+      follow_up_due_at: selectedCompany.next_follow_up_at,
+      stop_reason: null,
       next_recommended_action: selectedCompany.next_recommended_action,
     },
   });

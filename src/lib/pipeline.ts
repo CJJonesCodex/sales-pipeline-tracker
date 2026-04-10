@@ -71,17 +71,20 @@ export function getNextRecommendedAction(input: {
   stage: PipelineStage;
   hasContacts: boolean;
   hasPrimaryContact: boolean;
-  nextFollowUpAt: string | null;
+  followUpDueAt: string | null;
+  draftStatus?: "not_started" | "generated" | "ready";
+  sendStatus?: "not_contacted" | "contacted" | "replied" | "qualified" | "won" | "lost" | "stopped";
 }) {
   if (input.stage === "new") return "Verify official website";
   if (input.stage === "website_verified") return "Run contact discovery";
   if (!input.hasContacts) return "Find contacts for this company";
   if (!input.hasPrimaryContact) return "Select the best contact";
-  if (input.stage === "best_contact_selected") return "Prepare outreach draft";
-  if (input.stage === "draft_ready") return "Send first outreach";
+  if (input.stage === "best_contact_selected" || input.draftStatus === "not_started") return "Prepare outreach draft";
+  if (input.stage === "draft_ready" || input.draftStatus === "generated") return "Mark draft ready for human review";
+  if (input.draftStatus === "ready" && input.sendStatus === "not_contacted") return "Mark as contacted after human-approved send";
   if (input.stage === "contacted" || input.stage === "follow_up_due") {
-    if (input.nextFollowUpAt) {
-      return `Follow up on ${new Date(input.nextFollowUpAt).toLocaleDateString()}`;
+    if (input.followUpDueAt) {
+      return `Follow up on ${new Date(input.followUpDueAt).toLocaleDateString()}`;
     }
 
     return "Schedule follow-up";
